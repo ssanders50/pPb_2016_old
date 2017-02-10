@@ -1,0 +1,7 @@
+<project name="CMSSW" version="CMSSW_8_0_23">
+  <config dir="config"/>
+  <toolbox dir="file:/opt/cmssw/slc6_amd64_gcc530/cms/cmssw-tool-conf/33.0-ikhhed20"/>
+  <base url="file:/opt/cmssw/BUILD/slc6_amd64_gcc530/cms/cmssw/CMSSW_8_0_23/">
+    <download url="file:config" name="config"/>
+  </base>
+</project>
