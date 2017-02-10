@@ -19,7 +19,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_Prompt_v15', '')
 process.GlobalTag.snapshotTime = cms.string("9999-12-31 23:59:59.000")
 
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(50) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 process.MessageLogger.cerr.FwkReport.reportEvery=1000
 
 import FWCore.PythonUtilities.LumiList as LumiList
@@ -70,6 +70,8 @@ process.minBias.HLTPaths = [
 
 process.dump = cms.EDAnalyzer("EventContentAnalyzer")
 
+process.hiEvtPlane.trackTag = cms.InputTag("generalTracks")
+process.hiEvtPlane.vertexTag = cms.InputTag("offlinePrimaryVertices")
 process.hiEvtPlane.loadDB = cms.bool(False)
 process.p = cms.Path(process.collisionEventSelectionPA*process.minBias*process.hfCoincFilter3*process.hiEvtPlane* process.evtPlaneCalibTree )
 
