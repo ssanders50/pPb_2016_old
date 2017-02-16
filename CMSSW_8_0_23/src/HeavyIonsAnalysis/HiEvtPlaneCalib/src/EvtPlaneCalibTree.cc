@@ -1,6 +1,5 @@
 #include <memory>
 
-
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -61,13 +60,12 @@ using namespace std;
 using namespace hi;
 using namespace reco;
 
-static const int ntrkbins = 16;
-static const  double trkbins[]={0,20,30,40,50,60,80,100,120,150,185,220,260,300,350,500,1000};
+static const int ntrkbins = 25;
+static const  double trkbins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
-
-static const int nptbins = 17;
-static const double ptbins[]={0.3,0.4,0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
-				       2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0, 10.};
+static const int nptbins = 28;
+static const double ptbins[]={0.3, 0.4, 0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
+			      2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0, 10., 12.0, 14.0, 16.0,  20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
 static const int MaxNumFlatBins = 200;
 
 static const int netabins = 12;
@@ -92,7 +90,7 @@ private:
   edm::InputTag centralityBinTag_;
   edm::EDGetTokenT<int> centralityBinToken;
   edm::Handle<int> cbin_;
-
+  
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
   edm::Handle<reco::Centrality> centrality_;
@@ -100,7 +98,7 @@ private:
   edm::InputTag vertexTag_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
   edm::Handle<VertexCollection> vertexCollection_;
- edm::Handle<std::vector<reco::Vertex>> vertex_;
+  edm::Handle<std::vector<reco::Vertex>> vertex_;
   
   //edm::InputTag caloTag_;
   //edm::EDGetTokenT<CaloTowerCollection> caloToken;
@@ -162,18 +160,8 @@ private:
   TH2F * hpt;
   TH2F * hpt2;
   TH2F * hptcnt;
-  TH2D * wqxtrk2[ntrkbins];
-  TH2D * wqytrk2[ntrkbins];
-  TH2D * wqxtrk3[ntrkbins];
-  TH2D * wqytrk3[ntrkbins];
-  TH2D * wqxtrk4[ntrkbins];
-  TH2D * wqytrk4[ntrkbins];
-  TH2D * wqxtrk5[ntrkbins];
-  TH2D * wqytrk5[ntrkbins];
-  TH2D * wqxtrk6[ntrkbins];
-  TH2D * wqytrk6[ntrkbins];
-  TH2D * wqxtrk7[ntrkbins];
-  TH2D * wqytrk7[ntrkbins];
+  TH2D * wqxtrk[6][ntrkbins];
+  TH2D * wqytrk[6][ntrkbins];
   TH2D * wqcnt[ntrkbins];
   
   //TH2D * hcastor;
@@ -190,13 +178,13 @@ private:
   bool genFlatPsi_;
   bool useOffsetPsi_;
   bool storeNames_;
-
+  
   int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   {
     int Noff = 0;
     using namespace edm;
     using namespace reco;
-  
+    
     iEvent.getByToken(trackToken,trackCollection_);
     for(reco::TrackCollection::const_iterator itTrack = trackCollection_->begin();
 	itTrack != trackCollection_->end();                      
@@ -204,7 +192,7 @@ private:
       if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
       if ( itTrack->charge() == 0 ) continue;
       if ( itTrack->pt() < 0.4 ) continue;
-
+      
       iEvent.getByToken(vertexToken, vertex_);
       math::XYZPoint vtxPoint(0.0,0.0,0.0);
       double vzErr =0.0, vxErr=0.0, vyErr=0.0;
@@ -214,20 +202,20 @@ private:
 	vxErr=vertex_->begin()->xError();
 	vyErr=vertex_->begin()->yError();
       }
- 
+      
       double d0=0.0, dz=0.0, d0sigma=0.0, dzsigma=0.0;
       d0 = -1.*itTrack->dxy(vtxPoint);
       dz = itTrack->dz(vtxPoint);
       d0sigma = sqrt(itTrack->d0Error()*itTrack->d0Error()+vxErr*vyErr);
       dzsigma = sqrt(itTrack->dzError()*itTrack->dzError()+vzErr*vzErr);
-
+      
       if ( fabs(itTrack->eta()) > 2.4 ) continue;
       if ( fabs( dz/dzsigma ) > 3. ) continue;
       if ( fabs( d0/d0sigma ) > 3. ) continue;
       if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
       Noff++;
     }
-
+    
     int bin = htrkbins->FindBin(Noff)-1;
     iEvent.getByToken(trackToken,trackCollection_);
     for(reco::TrackCollection::const_iterator itTrack = trackCollection_->begin();
@@ -247,35 +235,25 @@ private:
 	vxErr=vertex_->begin()->xError();
 	vyErr=vertex_->begin()->yError();
       }
- 
+      
       double d0=0.0, dz=0.0, d0sigma=0.0, dzsigma=0.0;
       d0 = -1.*itTrack->dxy(vtxPoint);
       dz = itTrack->dz(vtxPoint);
       d0sigma = sqrt(itTrack->d0Error()*itTrack->d0Error()+vxErr*vyErr);
       dzsigma = sqrt(itTrack->dzError()*itTrack->dzError()+vzErr*vzErr);
-
+      
       if ( fabs(itTrack->eta()) > 2.4 ) continue;
       if ( fabs( dz/dzsigma ) > 3. ) continue;
       if ( fabs( d0/d0sigma ) > 3. ) continue;
       if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
       double pt = itTrack->pt();
-      wqxtrk2[bin]->Fill(pt, eta, cos( 2. * phi ));
-      wqytrk2[bin]->Fill(pt, eta, sin( 2. * phi ));
-      wqxtrk3[bin]->Fill(pt, eta, cos( 3. * phi ));
-      wqytrk3[bin]->Fill(pt, eta, sin( 3. * phi ));
-      wqxtrk4[bin]->Fill(pt, eta, cos( 4. * phi ));
-      wqytrk4[bin]->Fill(pt, eta, sin( 4. * phi ));
-      wqxtrk5[bin]->Fill(pt, eta, cos( 5. * phi ));
-      wqytrk5[bin]->Fill(pt, eta, sin( 5. * phi ));
-      wqxtrk6[bin]->Fill(pt, eta, cos( 6. * phi ));
-      wqytrk6[bin]->Fill(pt, eta, sin( 6. * phi ));
-      wqxtrk7[bin]->Fill(pt, eta, cos( 7. * phi ));
-      wqytrk7[bin]->Fill(pt, eta, sin( 7. * phi ));
+      for(int j = 0; j<6; j++) {
+	wqxtrk[j][bin]->Fill(pt, eta, cos( (2.+j) * phi ));
+	wqytrk[j][bin]->Fill(pt, eta, sin( (2.+j) * phi ));
+      }
       wqcnt[bin]->Fill(pt,eta);
     }
-
-
-
+    
     return Noff;
   }
   
@@ -300,19 +278,13 @@ EvtPlaneCalibTree::EvtPlaneCalibTree(const edm::ParameterSet& iConfig) {
   
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
   vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
-
-  //caloTag_ = iConfig.getParameter<edm::InputTag>("caloTag_");
-  //caloToken = consumes<CaloTowerCollection>(caloTag_);
-
-  //castorTag_ = iConfig.getParameter<edm::InputTag>("castorTag_");
-  //castorToken = consumes<std::vector<reco::CastorTower>>(castorTag_);
-
+  
   trackTag_ = iConfig.getParameter<edm::InputTag>("trackTag_");
   trackToken = consumes<reco::TrackCollection>(trackTag_);
-
+  
   inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
   inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
-
+  
   genFlatPsi_ = iConfig.getUntrackedParameter<bool>("genFlatPsi_",true);
   FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
   NumFlatBins_ = iConfig.getUntrackedParameter<int>("NumFlatBins_",40);
@@ -333,14 +305,13 @@ EvtPlaneCalibTree::EvtPlaneCalibTree(const edm::ParameterSet& iConfig) {
   delvtx_ = iConfig.getUntrackedParameter<double>("delvtx_",5.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
-
+  
   storeNames_ = 1;
   
   FirstEvent = kTRUE;
   hcent = fs->make<TH1D>("cent","cent",101,0,100);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
   htrkbins = fs->make<TH1D>("trkbins","trkbins",ntrkbins,trkbins);
-  //produces<reco::EvtPlaneCollection>("recoLevel");
   TString epnamesF = EPNames[0].data();
   epnamesF = epnamesF+"/F";
   for(int i = 0; i<NumEPNames; i++) if(i>0) epnamesF = epnamesF + ":" + EPNames[i].data() + "/F";  
@@ -378,34 +349,21 @@ EvtPlaneCalibTree::EvtPlaneCalibTree(const edm::ParameterSet& iConfig) {
   hptcnt = fs->make<TH2F>("hptcnt","hptcnt",NumFlatBins_,0,NumFlatBins_,nvtxbins,minvtx_,maxvtx_);
   for(int i = 0; i<ntrkbins; i++) {
     TFileDirectory subdir = fs->mkdir(Form("%d_%d",(int)trkbins[i],(int)trkbins[i+1]));
-    wqxtrk2[i] = subdir.make<TH2D>(Form("wqxtrk2_%d",i),Form("wqxtrk2_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk2[i] = subdir.make<TH2D>(Form("wqytrk2_%d",i),Form("wqytrk2_%d",i),nptbins,ptbins, netabins, etabins);
-    wqxtrk3[i] = subdir.make<TH2D>(Form("wqxtrk3_%d",i),Form("wqxtrk3_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk3[i] = subdir.make<TH2D>(Form("wqytrk3_%d",i),Form("wqytrk3_%d",i),nptbins,ptbins, netabins, etabins);
-    wqxtrk4[i] = subdir.make<TH2D>(Form("wqxtrk4_%d",i),Form("wqxtrk4_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk4[i] = subdir.make<TH2D>(Form("wqytrk4_%d",i),Form("wqytrk4_%d",i),nptbins,ptbins, netabins, etabins);
-    wqxtrk5[i] = subdir.make<TH2D>(Form("wqxtrk5_%d",i),Form("wqxtrk5_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk5[i] = subdir.make<TH2D>(Form("wqytrk5_%d",i),Form("wqytrk5_%d",i),nptbins,ptbins, netabins, etabins);
-    wqxtrk6[i] = subdir.make<TH2D>(Form("wqxtrk6_%d",i),Form("wqxtrk6_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk6[i] = subdir.make<TH2D>(Form("wqytrk6_%d",i),Form("wqytrk6_%d",i),nptbins,ptbins, netabins, etabins);
-    wqxtrk7[i] = subdir.make<TH2D>(Form("wqxtrk7_%d",i),Form("wqxtrk7_%d",i),nptbins,ptbins, netabins, etabins);
-    wqytrk7[i] = subdir.make<TH2D>(Form("wqytrk7_%d",i),Form("wqytrk7_%d",i),nptbins,ptbins, netabins, etabins);
     wqcnt[i]   = subdir.make<TH2D>(Form("wqcnt_%d"  ,i),Form("wqcnt_%d"  ,i),nptbins,ptbins, netabins, etabins);
-    wqxtrk2[i]->SetOption("colz");
-    wqytrk2[i]->SetOption("colz");
-    wqxtrk3[i]->SetOption("colz");
-    wqytrk3[i]->SetOption("colz");
-    wqxtrk4[i]->SetOption("colz");
-    wqytrk4[i]->SetOption("colz");
-    wqxtrk5[i]->SetOption("colz");
-    wqytrk5[i]->SetOption("colz");
-    wqxtrk6[i]->SetOption("colz");
-    wqytrk6[i]->SetOption("colz");
-    wqxtrk7[i]->SetOption("colz");
-    wqytrk7[i]->SetOption("colz");
     wqcnt[i]->SetOption("colz");
+    wqcnt[i]->SetXTitle("p_{T} (GeV/c)");
+    wqcnt[i]->SetYTitle("#eta");
+    for(int j = 0; j<6; j++) {
+      wqxtrk[j][i] = subdir.make<TH2D>(Form("wqxtrk%d_%d",j+2,i),Form("wqxtrk%d_%d",j+2,i),nptbins,ptbins, netabins, etabins);
+      wqytrk[j][i] = subdir.make<TH2D>(Form("wqytrk%d_%d",j+2,i),Form("wqytrk%d_%d",j+2,i),nptbins,ptbins, netabins, etabins);
+      wqxtrk[j][i]->SetOption("colz");
+      wqytrk[j][i]->SetOption("colz");
+      wqxtrk[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqxtrk[j][i]->SetYTitle("#eta");
+      wqytrk[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqytrk[j][i]->SetYTitle("#eta");
+    }
   }
-  
   fparams->SetBinContent(1,minet_);
   fparams->SetBinContent(2,maxet_);
   fparams->SetBinContent(3,minpt_);
