@@ -7,14 +7,14 @@
 #include "string.h"
 #include "stdio.h"
 
-#include "EPCalib/HiEvtPlaneList.h"
-#include "EPCalib/HiEvtPlaneFlatten.h"
+//#include "EPCalib/HiEvtPlaneList.h"
+//#include "EPCalib/HiEvtPlaneFlatten.h"
 void Loop1(){
-    for(int i = 0; i<nentries; i++) {
-      tree->GetEntry(i);
-      hcent->Fill(centval);
-      hvtx->Fill(vtx);
 
+    for(int i = 0; i<nentries; i++) {
+      if(tree->GetEntry(i)<=0) continue;
+      if(runno_ < minRun_ || runno_ > maxRun_) continue;
+      if(useNtrk) bin=NtrkToBin(ntrkval);
       sout.vtx = vtx;
       sout.bin = bin;
       sout.cent = centval;
@@ -34,15 +34,21 @@ void Loop1(){
 	double c = wcv[j]*scale;
 	double snow = wsv_no_w[j]*scale;
 	double cnow = wcv_no_w[j]*scale;
+	double psiin = atan2(s,c)/order;
+	double sin = s;
+	double cin = c;
+	double pts = pt2_[j][indx]/pt_[j][indx];
 	if(MomConsWeight[j][0]=='y' && ptav[j]>0) {
-	  double sgn = 1.;
-	  if(EPEtaMax1[j]<0) sgn = -1.;
-	  s=s-sgn*(pt2_[j][indx]/pt_[j][indx])*snow;
-	  c=c-sgn*(pt2_[j][indx]/pt_[j][indx])*cnow;
+	  s=s-(pt2_[j][indx]/pt_[j][indx])*snow;
+	  c=c-(pt2_[j][indx]/pt_[j][indx])*cnow;
 	}
   	double psi = atan2(s,c)/order;
+	//if(i<2) {
+	//  std::cout<<"Loop1: "<<s<<"\t"<<c<<"\t"<<sin<<"\t"<<cin<<"\t"<<psi<<"\t"<<scale<<std::endl;
+	//}
   	flat[j]->fill(psi,vtx,bin);
   	flat[j]->fillOffset(s,c,ptcnt[j],vtx,bin);
+  	flatOffset[j]->fillOffset(s,c,ptcnt[j],vtx,bin);
   	sout.ws[j] = s;
   	sout.wc[j] = c;
   	sout.wsum[j] = ptcnt[j];
