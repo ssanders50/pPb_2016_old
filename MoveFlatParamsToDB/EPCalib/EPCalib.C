@@ -7,21 +7,32 @@
 #include "string.h"
 #include "stdio.h"
 
-#include "EPCalib/HiEvtPlaneList.h"
-#include "EPCalib/HiEvtPlaneFlatten.h"
+#include "HiEvtPlaneList.h"
+#include "HiEvtPlaneFlatten.h"
 
+
+static const int ntrkbins = 25;
+static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
 using namespace hi;
 using namespace std;
 
 static const int nCentBins_ = 200;
-static const int nptbins = 28;
 
+static bool useNtrk = true;
+
+static const int nptbins = 28;
 static const float ptbins[] = {
      0.0,   0.1,   0.2,   0.3,   0.4,   0.5,   0.6,   0.7,   0.8,   0.9, 
      1.0,   1.2,   1.4,   1.6,   2.0,   2.5,   3.0,   4.0,   6.0,  10.0,  
     15.0,  20.0,  30.0,  50.0, 100.0, 200.0, 400.0, 600.0,1000.0};
 
+int NtrkToBin(int ntrk){
+  for(int i = 0; i<=ntrkbins; i++) {
+    if(ntrk < trkBins[i]) return i;
+  }
+  return ntrkbins;
+}
 struct sout_struct{
   double ws[NumEPNames];
   double wc[NumEPNames];
@@ -34,22 +45,19 @@ struct sout_struct{
   unsigned int run;
 }; 
 struct sout_struct sout; 
-Bool_t test = kFALSE;
+Bool_t test = false;
+int ntest = 10000;
 
 float centval;
 float vtx;
 unsigned int runno_;
 unsigned int ntrkval;
 int bin;
-// TH1F * s[NumEPNames];
-// TH1F * c[NumEPNames];
-// TH1I * cnt[NumEPNames];
-// TH1F * pt[NumEPNames];
-// TH1F * pt2[NumEPNames];
 TTree * tree;
 TH1D * hcent;
 TH1D * hcentbin;
 TH1D * hvtx;
+TH1I * hruns;
 TH1D * hPsi[NumEPNames];
 
 TH1D * hPsiOffset[NumEPNames];
@@ -82,8 +90,8 @@ TH1D * yoffhist[NumEPNames];
 TH1D * xyoffcnthist[NumEPNames];
 TH1D * xyoffmulthist[NumEPNames];
 
-TH1D * hpt[NumEPNames][10];
-TH1D * hscale[NumEPNames][10];
+TH1D * hpt[NumEPNames][ntrkbins];
+TH1D * hscale[NumEPNames][ntrkbins];
 
 
 float EPcent;
@@ -99,10 +107,11 @@ float pt2[NumEPNames];
 float ptav[NumEPNames];
 float pt2av[NumEPNames];
 float ptcntav[NumEPNames];
-
-double pt_[NumEPNames][1000];
-double pt2_[NumEPNames][1000];
-double ptcnt_[NumEPNames][1000];
+unsigned int minRun_;
+unsigned int  maxRun_;
+double pt_[NumEPNames][8000];
+double pt2_[NumEPNames][8000];
+double ptcnt_[NumEPNames][8000];
 
 int ptcnt[NumEPNames];
 TTree * EPtree;
@@ -111,20 +120,24 @@ int nentries;
 int totentries;
 int ncnt;
 FILE * save;
-#include "EPCalib/src/Loop0.h"
-#include "EPCalib/src/Loop1.h"
-#include "EPCalib/src/Loop2.h"
-#include "EPCalib/src/Loop3.h"
-#include "EPCalib/src/rescor.h"
+#include "src/Loop0.h"
+#include "src/Loop1.h"
+#include "src/Loop2.h"
+#include "src/Loop3.h"
+#include "src/rescor.h"
 
-void EPCalib(){
-  save = fopen("save","wb");
+void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
+  minRun_ = minRun;
+  maxRun_ = maxRun;
+  cout<<"minRun: "<<minRun_<<endl;
+  cout<<"maxRun: "<<maxRun_<<endl;
+  save = fopen("tmpsave","wb");
   int Hbins = 0;
   int Obins = 0;
   char buf[200];
   FILE * list;
   list = fopen("tmp.lis","r");
-  TString fnames[1000];
+  TString fnames[8000];
   memset(buf,0,sizeof(buf));
   int lcnt = 0;
   while(fgets(buf,200,list)!=NULL) {
@@ -134,14 +147,13 @@ void EPCalib(){
     ++lcnt;
   }
   fclose(list);
-
   TFile * tfout = new TFile("EP.root","recreate");
   TDirectory * outdir = tfout->mkdir("hiEvtPlaneFlatCalib");
   outdir->cd();
   TString epnames = EPNames[0].data();
   epnames = epnames+"/F";
   for(int i = 0; i<NumEPNames; i++) if(i>0) epnames = epnames + ":" + EPNames[i].data() + "/F";  
-
+  
   EPtree = new TTree("EPtree","EP tree");
   EPtree->Branch("Cent", &EPcent,"cent/F");
   EPtree->Branch("Vtx",&EPvtx,"vtx/F");
@@ -149,6 +161,9 @@ void EPCalib(){
   EPtree->Branch("Run",&EPrun,"run/i");
   EPtree->Branch("EPAngs",&EPAngs,epnames.Data());
   hcent = new TH1D("hcent","centrality",200,0,100);
+  int minr = 262400;
+  int maxr = 263380;
+  hruns = new TH1I("hruns","runs",maxr-minr+1,minr,maxr);
   hcentbin = new TH1D("hcentbin","centrality bin",400,0,400);
   hvtx = new TH1D("hvtx","vertex",200,-30,30);
   TFile * tf = new TFile(fnames[0].Data(),"read");
@@ -162,24 +177,33 @@ void EPCalib(){
   maxvtx_ = fparams->GetBinContent(6);
   caloCentRef_ = fparams->GetBinContent(7);
   caloCentRefWidth_ = fparams->GetBinContent(8);
+  caloCentRef_ = -1;
+  caloCentRefWidth_ = -1;
   FlatOrder_ = iparams->GetBinContent(1);
   NumFlatBins_ = iparams->GetBinContent(2);
   CentBinCompression_ = iparams->GetBinContent(3);
-
+  
+  if(useNtrk) {
+    NumFlatBins_ = ntrkbins ;
+    CentBinCompression_ = 1;
+  }
   cout<<"==============================================="<<endl;
-  cout<<"minet_               "<<minet_<<endl;
-  cout<<"maxet_               "<<maxet_<<endl;
-  cout<<"minpt_               "<<minpt_<<endl;
-  cout<<"maxpt_               "<<maxpt_<<endl;
-  cout<<"minvtx_              "<<minvtx_<<endl;
-  cout<<"maxvtx_              "<<maxvtx_<<endl;
-  cout<<"caloCentRef_         "<<caloCentRef_<<endl;
-  cout<<"caloCentRefWidth_    "<<caloCentRefWidth_<<endl;
-  cout<<"FlatOrder_           "<<FlatOrder_<<endl;
-  cout<<"NumFlatBins_         "<<NumFlatBins_<<endl;
-  cout<<"CentBinCompression_  "<<CentBinCompression_<<endl;
+  cout<<"minet_                "<<minet_<<endl;
+  cout<<"maxet_                "<<maxet_<<endl;
+  cout<<"minpt_                "<<minpt_<<endl;
+  cout<<"maxpt_                "<<maxpt_<<endl;
+  cout<<"minvtx_               "<<minvtx_<<endl;
+  cout<<"maxvtx_               "<<maxvtx_<<endl;
+  cout<<"caloCentRef_  (set    "<<caloCentRef_<<endl;
+  cout<<"caloCentRefWidth_(set)"<<caloCentRefWidth_<<endl;
+  cout<<"FlatOrder_            "<<FlatOrder_<<endl;
+  cout<<"NumFlatBins_          "<<NumFlatBins_<<endl;
+  NumFlatBins_ = ntrkbins;
+  cout<<"  reset to            "<<NumFlatBins_<<endl;
+  cout<<"CentBinCompression_   "<<CentBinCompression_<<endl;
   cout<<"==============================================="<<endl;
   tf->Close();
+  
   for(int i = 0; i<NumEPNames; i++) {
     dirs[i] = outdir->mkdir(Form("%s",EPNames[i].data()));
     dirs[i]->cd();
@@ -190,8 +214,9 @@ void EPCalib(){
     if(EPOrder[i]==4 ) psirange = 1;
     if(EPOrder[i]==5) psirange = 0.8;
     if(EPOrder[i]==6) psirange = 0.6;
+    if(EPOrder[i]==7) psirange = 0.5;
     for(int j = 0; j<10; j++) {
-      hpt[i][j] = new TH1D(Form("pt_%d",j),Form("pt_%d",j),500,0,5);
+      hpt[i][j] = new TH1D(Form("pt_%d",j),Form("pt_%d",j),1000,0,10);
       hpt[i][j]->SetXTitle("pt (GeV");
       hpt[i][j]->SetYTitle("Counts");
       
@@ -199,7 +224,7 @@ void EPCalib(){
       hscale[i][j]->SetXTitle("pt2 (GeV");
       hscale[i][j]->SetYTitle("Counts");
     }
-
+    
     hPsi[i] = new TH1D("psi","psi",800,-psirange,psirange);
     hPsi[i]->SetXTitle("#Psi");
     hPsi[i]->SetYTitle(Form("Counts (cent<80%c)",'%'));
@@ -207,35 +232,31 @@ void EPCalib(){
     hPsiOffset[i] = new TH1D("psiOffset","psiOffset",800,-psirange,psirange);
     hPsiOffset[i]->SetXTitle("#Psi");
     hPsiOffset[i]->SetYTitle(Form("Counts (cent<80%c)",'%'));
-
+    
     hPsiOffset2[i] = new TH1D("psiOffset2","psiOffset2",800,-psirange,psirange);
     hPsiOffset2[i]->SetXTitle("#Psi");
     hPsiOffset2[i]->SetYTitle(Form("Counts (cent<80%c)",'%'));
+    
 
     flat[i] = new HiEvtPlaneFlatten();
     flat[i]->init(FlatOrder_,NumFlatBins_,EPNames[i].data(),EPOrder[i]);
-    flat[i]->setCaloCentRefBins(-1,-1);
-    if(caloCentRef_>0) {
-      int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-      int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-      minbin/=CentBinCompression_;
-      maxbin/=CentBinCompression_;
-      if(minbin>0 && maxbin>=minbin) {
-	if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
-      }
-    }
     
     flatOffset[i] = new HiEvtPlaneFlatten();
     flatOffset[i]->init(FlatOrder_,NumFlatBins_,EPNames[i].data(),EPOrder[i]);
+
     if(caloCentRef_>0) {
       int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
       int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
       minbin/=CentBinCompression_;
       maxbin/=CentBinCompression_;
       if(minbin>0 && maxbin>=minbin) {
-	if(EPDet[i]==HF || EPDet[i]==Castor) flatOffset[i]->setCaloCentRefBins(minbin,maxbin);
+	if(EPDet[i]==HF || EPDet[i]==Castor) {
+	  flat[i]->setCaloCentRefBins(minbin,maxbin);
+	  flatOffset[i]->setCaloCentRefBins(minbin,maxbin);
+	}
       }
     }
+    
     
     Hbins = flat[i]->getHBins();
     Obins = flat[i]->getOBins();
@@ -264,7 +285,7 @@ void EPCalib(){
   totentries = 0;
   ncnt = 0;
   for(int i = 0; i<NumEPNames; ++i){
-    for(int j = 0; j<1000; j++) {
+    for(int j = 0; j<8000; j++) {
       pt_[i][j]=0;
       pt2_[i][j]=0;
       ptcnt_[i][j]=0;
@@ -272,6 +293,9 @@ void EPCalib(){
   }
   for(int findx = 0; findx< lcnt; findx++) {
     tf = new TFile(fnames[findx].Data(),"read");
+    if(tf->IsZombie())                 {cout<<"ZOMBIE:    " <<fnames[findx].Data()<<endl; continue;}
+    if(tf->TestBit(TFile::kRecovered)) {cout<<"RECOVERED: " <<fnames[findx].Data()<<endl; continue;}
+    
     tree = (TTree *) tf->Get("evtPlaneCalibTree/tree");
     tree->SetBranchAddress("Cent",    &centval);
     tree->SetBranchAddress("Vtx",     &vtx);
@@ -288,10 +312,9 @@ void EPCalib(){
     
     nentries = tree->GetEntries();
     cout<<"Loop 0: "<<tf->GetName()<<"\t"<<nentries<<"\t"<<totentries<<endl;
-    if(test) nentries = 1000;
     Loop0();
     for(int i = 0; i<NumEPNames; i++) {
-      for(int j = 0; j<1000; j++) {
+      for(int j = 0; j<flat[i]->getOBins(); j++) {
 	if(ptcnt_[i][j]>0) {
 	  double cval = ptcnt_[i][j];
 	  flat[i]->setPtDB(j,pt_[i][j]/cval);
@@ -303,6 +326,7 @@ void EPCalib(){
 	pt2av[i]/=ptcntav[i];
       }
     }
+    tf->Close();
   }
   //
   // Loop 1
@@ -311,6 +335,8 @@ void EPCalib(){
   ncnt = 0;
   for(int findx = 0; findx< lcnt; findx++) {
     tf = new TFile(fnames[findx].Data(),"read");
+    if(tf->IsZombie())                 {cout<<"ZOMBIE:    " <<fnames[findx].Data()<<endl; continue;}
+    if(tf->TestBit(TFile::kRecovered)) {cout<<"RECOVERED: " <<fnames[findx].Data()<<endl; continue;}
     tree = (TTree *) tf->Get("evtPlaneCalibTree/tree");
     tree->SetBranchAddress("Cent",    &centval);
     tree->SetBranchAddress("Vtx",     &vtx);
@@ -329,6 +355,7 @@ void EPCalib(){
     cout<<"Loop 1: "<<tf->GetName()<<"\t"<<nentries<<"\t"<<totentries<<endl;
     if(test) nentries = 1000;
     Loop1();
+    tf->Close();
   }
   
   for(int i = 0; i<NumEPNames; i++) {
@@ -355,10 +382,6 @@ void EPCalib(){
       flatOffset[i]->setXDB(j, (flatOffset[i]->getCnt(j)>0)? flatOffset[i]->getX(j)/flatOffset[i]->getCnt(j): 0);
       flatOffset[i]->setYDB(j, (flatOffset[i]->getCnt(j)>0)? flatOffset[i]->getY(j)/flatOffset[i]->getCnt(j): 0);  
     }
-    for(int j = 0; j<flat[i]->getOBins(); j++) {
-      flatOffset[i]->setXoffDB(j, (flat[i]->getXYoffcnt(j)>0)?flat[i]->getXoff(j)/flat[i]->getXYoffcnt(j):0);
-      flatOffset[i]->setYoffDB(j, (flat[i]->getXYoffcnt(j)>0)?flat[i]->getYoff(j)/flat[i]->getXYoffcnt(j):0);
-    }
   }
   fclose(save);
   //
@@ -366,6 +389,8 @@ void EPCalib(){
   //
   Loop3();  
   cout<<"finish loops"<<endl;
+  cout<<"Hbins: "<<flatOffset[0]->getHBins()<<endl;
+  cout<<"OBins: "<<flatOffset[0]->getOBins()<<endl;
   for(int i = 0; i<NumEPNames; i++) {
    
     for(int j = 0; j<flatOffset[i]->getHBins();j++) {
@@ -381,7 +406,6 @@ void EPCalib(){
       yoffhist[i]->SetBinContent(j+1,flat[i]->getYoff(j));
       xyoffcnthist[i]->SetBinContent(j+1,flat[i]->getXYoffcnt(j));
       xyoffmulthist[i]->SetBinContent(j+1,flat[i]->getXYoffmult(j));
-      
     }
     for(int j = 0; j<flatOffset[i]->getOBins();j++) {
       flatXhist[i]->SetBinContent(j+1+Hbins+Obins,pt_[i][j]);
