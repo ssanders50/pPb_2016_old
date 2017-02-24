@@ -16,7 +16,6 @@ void Loop3(){
     EPcent = (float) sout.cent;
     EPvtx = (float) sout.vtx;
     EPntrk = sout.ntrk;
-    cout<<"Loop3 "<<EPntrk<<endl;
     EPrun = sout.run;
     vtx = sout.vtx;
     bin = sout.bin;
