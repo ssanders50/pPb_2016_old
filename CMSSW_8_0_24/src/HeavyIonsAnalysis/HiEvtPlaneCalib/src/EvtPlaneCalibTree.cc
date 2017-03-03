@@ -421,7 +421,7 @@ EvtPlaneCalibTree::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   } else {
     bin = htrkbins->FindBin(ntrkval)-1;
     htrkbins->Fill(ntrkval);
-    if(bin<1 || bin>ntrkbins) return;
+    if(bin<0 || bin>=ntrkbins) return;
   }
   //
   //Get Vertex

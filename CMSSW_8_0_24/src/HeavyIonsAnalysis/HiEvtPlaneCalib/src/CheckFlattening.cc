@@ -224,21 +224,6 @@ private:
     int Noff = 0;
     using namespace edm;
     using namespace reco;
-    int mx = ntrkbins;
-    if(!useNtrk_) {
-      mx = 0;
-      cout<<"need to set this up"<<endl;
-      //	mx = nCentBins_;
-    }
-    for(int j = 0; j<7; j++) {
-      wqcntRecenter[j]->Reset();
-      for(int i = 0; i<mx; i++) {
-	wqxtrkRecenter[j][i]->Reset();
-	wqytrkRecenter[j][i]->Reset();
-	
-      }
-    }
-    
     iEvent.getByToken(vertexToken,vertex_);
     VertexCollection recoVertices = *vertex_;
     if ( recoVertices.size() > 100 ) return -1;
@@ -321,7 +306,7 @@ private:
 	}
       }
 
-      int bin = NtrkToBin(Noff);
+      int bin = NtrkToBin(Noff)-1;
       for(int j = 1; j<=7; j++) {
 	wqxtrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(j*itTrack->phi()));
 	wqytrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Sin(j*itTrack->phi()));
@@ -626,7 +611,7 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     iEvent.getByToken(tag_,cbin_);
     ntrkval = *cbin_;
     hNtrkoff->Fill(ntrkval);
-    bin = NtrkToBin(ntrkval);
+    bin = NtrkToBin(ntrkval)-1;
     centval = bin;
     hcentbins->Fill(bin);
   }
