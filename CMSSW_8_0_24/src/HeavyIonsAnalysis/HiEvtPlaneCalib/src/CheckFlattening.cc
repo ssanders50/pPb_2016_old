@@ -230,7 +230,7 @@ private:
       cout<<"need to set this up"<<endl;
       //	mx = nCentBins_;
     }
-    for(int j = 0; j<6; j++) {
+    for(int j = 0; j<7; j++) {
       wqcntRecenter[j]->Reset();
       for(int i = 0; i<mx; i++) {
 	wqxtrkRecenter[j][i]->Reset();
@@ -322,7 +322,7 @@ private:
       }
 
       int bin = NtrkToBin(Noff);
-      for(int j = 1; j<=6; j++) {
+      for(int j = 1; j<=7; j++) {
 	wqxtrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(j*itTrack->phi()));
 	wqytrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Sin(j*itTrack->phi()));
       }
@@ -496,7 +496,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
     //	mx = nCentBins_;
   }
   for(int i = 0; i<mx; i++) {
-    for(int j = 1; j<=6; j++){
+    for(int j = 1; j<=7; j++){
       wqxtrk[j-1][i] = (TH2D *) frecenter->Get(Form("wqxtrk_%d_%d",j,i));
       wqytrk[j-1][i] = (TH2D *) frecenter->Get(Form("wqytrk_%d_%d",j,i));
     }
@@ -508,9 +508,9 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
     wqcntRecenter[i]->SetOption("colz");
     wqcntRecenter[i]->SetXTitle("p_{T} (GeV/c)");
     wqcntRecenter[i]->SetYTitle("#eta");
-    for(int j = 0; j<6; j++) {
-      wqxtrkRecenter[j][i] = subdir.make<TH2D>(Form("wqxtrkRecenter%d",j+2),Form("wqxtrkRecenter%d",j+2),nptbins,ptbins, netabins, etabins);
-      wqytrkRecenter[j][i] = subdir.make<TH2D>(Form("wqytrkRecenter%d",j+2),Form("wqytrkRecenter%d",j+2),nptbins,ptbins, netabins, etabins);
+    for(int j = 0; j<7; j++) {
+      wqxtrkRecenter[j][i] = subdir.make<TH2D>(Form("wqxtrkRecenter%d",j+1),Form("wqxtrkRecenter%d",j+1),nptbins,ptbins, netabins, etabins);
+      wqytrkRecenter[j][i] = subdir.make<TH2D>(Form("wqytrkRecenter%d",j+1),Form("wqytrkRecenter%d",j+1),nptbins,ptbins, netabins, etabins);
       wqxtrkRecenter[j][i]->SetOption("colz");
       wqytrkRecenter[j][i]->SetOption("colz");
       wqxtrkRecenter[j][i]->SetXTitle("p_{T} (GeV/c)");
@@ -518,8 +518,8 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
       wqytrkRecenter[j][i]->SetXTitle("p_{T} (GeV/c)");
       wqytrkRecenter[j][i]->SetYTitle("#eta");
 
-      wqxtrkRef[j][i] = subdir.make<TH2D>(Form("wqxtrkRef%d",j+2),Form("wqxtrkRef%d",j+2),nptbins,ptbins, netabins, etabins);
-      wqytrkRef[j][i] = subdir.make<TH2D>(Form("wqytrkRef%d",j+2),Form("wqytrkRef%d",j+2),nptbins,ptbins, netabins, etabins);
+      wqxtrkRef[j][i] = subdir.make<TH2D>(Form("wqxtrkRef%d",j+1),Form("wqxtrkRef%d",j+1),nptbins,ptbins, netabins, etabins);
+      wqytrkRef[j][i] = subdir.make<TH2D>(Form("wqytrkRef%d",j+1),Form("wqytrkRef%d",j+1),nptbins,ptbins, netabins, etabins);
       wqxtrkRef[j][i]->SetOption("colz");
       wqytrkRef[j][i]->SetOption("colz");
       wqxtrkRef[j][i]->SetXTitle("p_{T} (GeV/c)");
