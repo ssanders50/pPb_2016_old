@@ -14,8 +14,12 @@
 
 #include "DataFormats/Common/interface/Handle.h"
 #include "FWCore/Framework/interface/ESHandle.h"
+#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
+#include "DataFormats/CastorReco/interface/CastorTower.h"
 
 #include "DataFormats/HeavyIonEvent/interface/Centrality.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/HeavyIonEvent/interface/EvtPlane.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -28,6 +32,10 @@
 #include "CondFormats/HIObjects/interface/RPFlatParams.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
+#include "DataFormats/Math/interface/Point3D.h"
+#include "DataFormats/Common/interface/RefProd.h"
+#include "DataFormats/Common/interface/Ref.h"
+#include "DataFormats/Common/interface/RefVector.h"
 
 
 #include "TROOT.h"
@@ -51,7 +59,17 @@ using namespace std;
 #include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
 #include "RecoHI/HiEvtPlaneAlgos/interface/LoadEPDB.h"
 using namespace hi;
+using namespace reco;
+using namespace edm;
+static const int ntrkbins = 25;
+static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
+static const int nptbins = 28;
+static const float ptbins[]={0.3, 0.4, 0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
+			      2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0, 10., 12.0, 14.0, 16.0,  20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
+
+static const int netabins = 12;
+static const float etabins[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
 //
 // class declaration
 //
@@ -75,14 +93,17 @@ private:
 
   edm::InputTag centralityBinTag_;
   edm::EDGetTokenT<int> centralityBinToken;
-  edm::Handle<int> cbin_;
 
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
   edm::Handle<reco::Centrality> centrality_;
 
+  edm::Handle<int> cbin_;
+  edm::EDGetTokenT<int> tag_;
+
   edm::InputTag vertexTag_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
+  edm::Handle<VertexCollection> vertexCollection_;
   edm::Handle<std::vector<reco::Vertex>> vertex_;
 
   edm::InputTag trackTag_;
@@ -94,20 +115,20 @@ private:
   edm::Handle<reco::EvtPlaneCollection> inputPlanes_;
 
   edm::Service<TFileService> fs;
+  TFile *  frecenter;
   int vs_sell;   // vertex collection size
   float vzr_sell;
   float vzErr_sell;
   TH1D * hcent;
   TH1D * hcentbins;
   double centval;
-  double ntrkval;
   double vtx;
   int noff;
   double caloCentRef_;
   double caloCentRefWidth_;
   int caloCentRefMinBin_;
   int caloCentRefMaxBin_;
-
+  bool useNtrk_;
   double nCentBins_;
   Double_t epang[NumEPNames];
   Double_t epsin[NumEPNames];
@@ -148,6 +169,15 @@ private:
   TH1D * PsiRaw[NumEPNames];
   TH1D * Psi[NumEPNames];
   TTree * tree;
+  string offsetFileName;
+
+  TH2D * wqxtrk[7][40];
+  TH2D * wqytrk[7][40];
+  TH2D * wqxtrkRef[7][40];
+  TH2D * wqytrkRef[7][40];
+  TH2D * wqxtrkRecenter[7][40];
+  TH2D * wqytrkRecenter[7][40];
+  TH2D * wqcntRecenter[40];
 
   int FlatOrder_;
   int NumFlatBins_;
@@ -187,6 +217,127 @@ private:
   bool Branch_RescorErr;
   bool Branch_vn;
 
+  int ntrkval;
+
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+  {
+    int Noff = 0;
+    using namespace edm;
+    using namespace reco;
+    int mx = ntrkbins;
+    if(!useNtrk_) {
+      mx = 0;
+      cout<<"need to set this up"<<endl;
+      //	mx = nCentBins_;
+    }
+    for(int j = 0; j<6; j++) {
+      wqcntRecenter[j]->Reset();
+      for(int i = 0; i<mx; i++) {
+	wqxtrkRecenter[j][i]->Reset();
+	wqytrkRecenter[j][i]->Reset();
+	
+      }
+    }
+    
+    iEvent.getByToken(vertexToken,vertex_);
+    VertexCollection recoVertices = *vertex_;
+    if ( recoVertices.size() > 100 ) return -1;
+    sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
+	if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
+	return a.tracksSize() > b.tracksSize();
+      });
+   
+    int primaryvtx = 0;
+   
+    double vz = recoVertices[primaryvtx].z();
+    if (fabs(vz) < -15 || fabs(vz) > 15) {
+      return -1;
+    }
+ 
+    math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+    double vxError = recoVertices[primaryvtx].xError();
+    double vyError = recoVertices[primaryvtx].yError();
+    double vzError = recoVertices[primaryvtx].zError();
+    
+
+    iEvent.getByLabel(trackTag_,trackCollection_);
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      bool bPix = false;
+      int nHits = itTrack->numberOfValidHits();
+      if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
+      if ( not bPix ) {
+	if ( nHits < 11 ) continue;
+	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
+	  continue;
+	}
+	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
+	  continue;
+	}
+	double d0 = -1.* itTrack->dxy(v1);
+	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+	if ( fabs( d0/derror ) > 3.0 ) {
+	  continue;
+	}
+	double dz=itTrack->dz(v1);
+	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+	if ( fabs( dz/dzerror ) > 3.0 ) {
+	  continue;
+	}
+      }
+      Noff++;
+    }
+    if(Noff < Noffmin_ || Noff > Noffmax_) return -2;
+
+
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      bool bPix = false;
+      int nHits = itTrack->numberOfValidHits();
+      if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
+      if ( not bPix ) {
+	if ( nHits < 11 ) continue;
+	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
+	  continue;
+	}
+	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
+	  continue;
+	}
+	
+	double d0 = -1.* itTrack->dxy(v1);
+	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+	if ( fabs( d0/derror ) > 3.0 ) {
+	  continue;
+	}
+	
+	double dz=itTrack->dz(v1);
+	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+	if ( fabs( dz/dzerror ) > 3.0 ) {
+	  continue;
+	}
+      }
+
+      int bin = NtrkToBin(Noff);
+      for(int j = 1; j<=6; j++) {
+	wqxtrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(j*itTrack->phi()));
+	wqytrkRecenter[j-1][bin]->Fill(itTrack->pt(), itTrack->eta(), TMath::Sin(j*itTrack->phi()));
+      }
+      wqcntRecenter[bin]->Fill(itTrack->pt(), itTrack->eta());
+    }
+    return Noff;
+  }
+
+
+  int NtrkToBin(int ntrk){
+    for(int i = 0; i<ntrkbins; i++) {
+      if(ntrk < trkBins[i]) return i;
+    }
+    return ntrkbins;
+  }
 
 
 
@@ -199,6 +350,9 @@ private:
 CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   
 {
+
+  offsetFileName = iConfig.getUntrackedParameter<std::string>("offsetFile");
+  frecenter = new TFile(offsetFileName.data(),"read");
   nCentBins_ = 200;
   runno_ = 0;
   loadDB_ = kTRUE;
@@ -230,6 +384,11 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   CentBinCompression_ = iConfig.getParameter<int>("CentBinCompression_");
   caloCentRef_ = iConfig.getParameter<double>("caloCentRef_");
   caloCentRefWidth_ = iConfig.getParameter<double>("caloCentRefWidth_");
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
+  if(useNtrk_) {
+    NumFlatBins_ = ntrkbins;
+    CentBinCompression_ = 1;
+  }
 
   // std::cout<<"centralityBinTag_           "<<centralityBinTag_.encode()<<std::endl;
   // std::cout<<"centralityTag_              "<<centralityTag_.encode()<<std::endl;
@@ -274,6 +433,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
 
   hcent = fs->make<TH1D>("cent","cent",220,-10,110);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
+  tag_ = consumes<int>(iConfig.getParameter<edm::InputTag>("BinLabel"));
 
   TString epnames = EPNames[0].data();
   epnames = epnames+"/D";
@@ -291,6 +451,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
     PsiRaw[i] = subdir.make<TH1D>(Form("PsiRaw_%s",EPNames[i].data()),Form("PsiRaw_%s",EPNames[i].data()),800,-psirange,psirange);
     Psi[i] = subdir.make<TH1D>(Form("Psi_%s",EPNames[i].data()),Form("Psi_%s",EPNames[i].data()),800,-psirange,psirange);
 
+    NumFlatBins_ = ntrkbins;
     flat[i] = new HiEvtPlaneFlatten();
     flat[i]->init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
 
@@ -320,7 +481,6 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   if(Branch_sumw2)             tree->Branch("sumw2",  &sumw2,        epnames.Data());
   if(Branch_sumPtOrEt)         tree->Branch("sumPtOrEt",  &sumPtOrEt,        epnames.Data());
   if(Branch_sumPtOrEt2)        tree->Branch("sumPtOrEt2",  &sumPtOrEt2,        epnames.Data());
-
   if(Branch_qx)                tree->Branch("qx",      &qx,       epnames.Data());
   if(Branch_qy)                tree->Branch("qy",      &qy,       epnames.Data());
   if(Branch_q)                 tree->Branch("q",       &q,       epnames.Data());
@@ -329,6 +489,55 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   if(Branch_Rescor)            tree->Branch("Rescor",  &rescor,   epnames.Data());
   if(Branch_RescorErr)         tree->Branch("RescorErr",  &rescorErr,   epnames.Data());
   if(Branch_vn)                tree->Branch("vn", &vn, epnames.Data());
+  int mx = ntrkbins;
+  if(!useNtrk_) {
+    mx = 0;
+    cout<<"need to set this up"<<endl;
+    //	mx = nCentBins_;
+  }
+  for(int i = 0; i<mx; i++) {
+    for(int j = 1; j<=6; j++){
+      wqxtrk[j-1][i] = (TH2D *) frecenter->Get(Form("wqxtrk_%d_%d",j,i));
+      wqytrk[j-1][i] = (TH2D *) frecenter->Get(Form("wqytrk_%d_%d",j,i));
+    }
+  }
+
+  for(int i = 0; i<ntrkbins; i++) {
+    TFileDirectory subdir = fs->mkdir(Form("%d_%d",(int)trkBins[i],(int)trkBins[i+1]));
+    wqcntRecenter[i]   = subdir.make<TH2D>("wqcntRecenter","wqcntRecenter", nptbins,ptbins, netabins, etabins);
+    wqcntRecenter[i]->SetOption("colz");
+    wqcntRecenter[i]->SetXTitle("p_{T} (GeV/c)");
+    wqcntRecenter[i]->SetYTitle("#eta");
+    for(int j = 0; j<6; j++) {
+      wqxtrkRecenter[j][i] = subdir.make<TH2D>(Form("wqxtrkRecenter%d",j+2),Form("wqxtrkRecenter%d",j+2),nptbins,ptbins, netabins, etabins);
+      wqytrkRecenter[j][i] = subdir.make<TH2D>(Form("wqytrkRecenter%d",j+2),Form("wqytrkRecenter%d",j+2),nptbins,ptbins, netabins, etabins);
+      wqxtrkRecenter[j][i]->SetOption("colz");
+      wqytrkRecenter[j][i]->SetOption("colz");
+      wqxtrkRecenter[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqxtrkRecenter[j][i]->SetYTitle("#eta");
+      wqytrkRecenter[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqytrkRecenter[j][i]->SetYTitle("#eta");
+
+      wqxtrkRef[j][i] = subdir.make<TH2D>(Form("wqxtrkRef%d",j+2),Form("wqxtrkRef%d",j+2),nptbins,ptbins, netabins, etabins);
+      wqytrkRef[j][i] = subdir.make<TH2D>(Form("wqytrkRef%d",j+2),Form("wqytrkRef%d",j+2),nptbins,ptbins, netabins, etabins);
+      wqxtrkRef[j][i]->SetOption("colz");
+      wqytrkRef[j][i]->SetOption("colz");
+      wqxtrkRef[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqxtrkRef[j][i]->SetYTitle("#eta");
+      wqytrkRef[j][i]->SetXTitle("p_{T} (GeV/c)");
+      wqytrkRef[j][i]->SetYTitle("#eta");
+
+      for(int ii = 1; ii<= wqxtrkRef[j][i]->GetNbinsX(); ii++) {
+      	for(int jj = 1; jj<= wqxtrkRef[j][i]->GetNbinsY(); jj++) {
+	  wqxtrkRef[j][i]->SetBinContent(ii,jj,wqxtrk[j][i]->GetBinContent(ii,jj));
+      	  wqytrkRef[j][i]->SetBinContent(ii,jj,wqytrk[j][i]->GetBinContent(ii,jj));
+      	}
+      }
+    }
+  }
+
+
+
 }
 
 
@@ -338,6 +547,8 @@ CheckFlattening::~CheckFlattening()
   
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
+
+  frecenter->Close();
 }
 
 
@@ -362,18 +573,20 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     //
     //Get Size of Centrality Table
     //
-    edm::ESHandle<CentralityTable> centDB_;
-    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    nCentBins_ = (int) centDB_->m_table.size();
-    for(int i = 0; i<NumEPNames; i++) {
-      flat[i]->setCaloCentRefBins(-1,-1);
-      if(caloCentRef_>0) {
-	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-	minbin/=CentBinCompression_;
-	maxbin/=CentBinCompression_;
-	if(minbin>0 && maxbin>=minbin) {
-	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+    if(!useNtrk_) {
+      edm::ESHandle<CentralityTable> centDB_;
+      iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+      nCentBins_ = (int) centDB_->m_table.size();
+      for(int i = 0; i<NumEPNames; i++) {
+	flat[i]->setCaloCentRefBins(-1,-1);
+	if(caloCentRef_>0) {
+	  int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+	  int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+	  minbin/=CentBinCompression_;
+	  maxbin/=CentBinCompression_;
+	  if(minbin>0 && maxbin>=minbin) {
+	    if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+	  }
 	}
       }
     }
@@ -392,41 +605,62 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   //
   //Get Centrality
   //
-  //int bin = 0;
-  int Noff=0;
-  if(Noffmin_>=0) {
-    iEvent.getByToken(centralityToken, centrality_);
-    int Noff = centrality_->Ntracks();
-    ntrkval = Noff;
-    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
-      return;
+  int bin = 0;
+  if(!useNtrk_) {
+    int ntrkval=0;
+    if(Noffmin_>=0) {
+      iEvent.getByToken(centralityToken, centrality_);
+      ntrkval = centrality_->Ntracks();
+      if ( (ntrkval < Noffmin_) || (ntrkval >= Noffmax_) ) {
+	return;
+      }
     }
+
+   iEvent.getByToken(centralityBinToken, cbin_);
+   int cbin = *cbin_;
+   bin = cbin/CentBinCompression_; 
+   double cscale = 100./nCentBins_;
+   centval = cscale*cbin;
+   
+   
+  } else {
+    iEvent.getByToken(tag_,cbin_);
+    ntrkval = *cbin_;
+    hNtrkoff->Fill(ntrkval);
+    bin = NtrkToBin(ntrkval);
+    centval = bin;
+    hcentbins->Fill(bin);
   }
-  hNtrkoff->Fill(Noff);
-
-  iEvent.getByToken(centralityBinToken, cbin_);
-  int cbin = *cbin_;
-  //bin = cbin/CentBinCompression_; 
-  double cscale = 100./nCentBins_;
-  centval = cscale*cbin;
-
   hcent->Fill(centval);
-  hcentbins->Fill(cbin);
-  //
   //Get Vertex
   //
-  int vs_sell;   // vertex collection size
-  float vzr_sell;
-  iEvent.getByToken(vertexToken,vertex_);
-  const reco::VertexCollection * vertices3 = vertex_.product();
-  vs_sell = vertices3->size();
-  if(vs_sell>0) {
-    vzr_sell = vertices3->begin()->z();
-  } else
-    vzr_sell = -999.9;
+  //  int vs_sell;   // vertex collection size
+  // float vzr_sell;
+  // iEvent.getByToken(vertexToken,vertex_);
+  // const reco::VertexCollection * vertices3 = vertex_.product();
+  // vs_sell = vertices3->size();
+  // if(vs_sell>0) {
+  //   vzr_sell = vertices3->begin()->z();
+  // } else
+  //   vzr_sell = -999.9;
   
-  vtx = vzr_sell;
+  // vtx = vzr_sell;
   //
+
+
+  iEvent.getByToken(vertexToken, vertexCollection_);
+  VertexCollection recoVertices = *vertexCollection_;
+  if ( recoVertices.size() > 100 ) return;
+  sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
+      if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
+      return a.tracksSize() > b.tracksSize();
+    });
+
+  int primaryvtx = 0;
+   
+  double vz = recoVertices[primaryvtx].z();
+  vtx = vz;
+
   //Get Event Planes
   //
   iEvent.getByToken(inputPlanesToken,inputPlanes_);
@@ -435,7 +669,6 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     cout << "Error! Can't get hiEvtPlaneFlat product!" << endl;
     return ;
   }
-  
   Int_t indx = 0;
   //std::cout<<" =============================================== "<<std::endl;
   for (EvtPlaneCollection::const_iterator rp = inputPlanes_->begin();rp !=inputPlanes_->end(); rp++) {
@@ -482,6 +715,7 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   }
 
   tree->Fill(); 
+  getNoff(iEvent, iSetup);
 }
 
 

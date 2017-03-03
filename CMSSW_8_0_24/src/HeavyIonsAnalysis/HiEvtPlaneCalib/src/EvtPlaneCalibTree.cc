@@ -119,7 +119,7 @@ private:
   bool foundCentTag;
   bool useECAL_;
   bool useHCAL_;
-  bool useTrack_;
+  bool useNtrk_;
   bool loadDB_;
   double minet_;
   double maxet_;
@@ -147,7 +147,6 @@ private:
   int CentBinCompression_;
   
   int HFEtScale_;
-  bool useNtrkBins_; 
   bool bypassCentrality_;
   int obins;
   TTree * tree;
@@ -160,8 +159,8 @@ private:
   TH2F * hpt;
   TH2F * hpt2;
   TH2F * hptcnt;
-  TH2D * wqxtrk[6][ntrkbins];
-  TH2D * wqytrk[6][ntrkbins];
+  TH2D * wqxtrk[7][ntrkbins];
+  TH2D * wqytrk[7][ntrkbins];
   TH2D * wqcnt[ntrkbins];
   
   //TH2D * hcastor;
@@ -216,44 +215,6 @@ private:
       Noff++;
     }
     
-    int bin = htrkbins->FindBin(Noff)-1;
-    iEvent.getByToken(trackToken,trackCollection_);
-    for(reco::TrackCollection::const_iterator itTrack = trackCollection_->begin();
-	itTrack != trackCollection_->end();                      
-	++itTrack) {    
-      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
-      if ( itTrack->charge() == 0 ) continue;
-      if ( itTrack->pt() < 0.4 ) continue;
-      double phi = itTrack->phi();
-      double eta = itTrack->eta();
-      iEvent.getByToken(vertexToken, vertex_);
-      math::XYZPoint vtxPoint(0.0,0.0,0.0);
-      double vzErr =0.0, vxErr=0.0, vyErr=0.0;
-      if(vertex_->size()>0) {
-	vtxPoint=vertex_->begin()->position();
-	vzErr=vertex_->begin()->zError();
-	vxErr=vertex_->begin()->xError();
-	vyErr=vertex_->begin()->yError();
-      }
-      
-      double d0=0.0, dz=0.0, d0sigma=0.0, dzsigma=0.0;
-      d0 = -1.*itTrack->dxy(vtxPoint);
-      dz = itTrack->dz(vtxPoint);
-      d0sigma = sqrt(itTrack->d0Error()*itTrack->d0Error()+vxErr*vyErr);
-      dzsigma = sqrt(itTrack->dzError()*itTrack->dzError()+vzErr*vzErr);
-      
-      if ( fabs(itTrack->eta()) > 2.4 ) continue;
-      if ( fabs( dz/dzsigma ) > 3. ) continue;
-      if ( fabs( d0/d0sigma ) > 3. ) continue;
-      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
-      double pt = itTrack->pt();
-      for(int j = 0; j<6; j++) {
-	wqxtrk[j][bin]->Fill(pt, eta, cos( (2.+j) * phi ));
-	wqytrk[j][bin]->Fill(pt, eta, sin( (2.+j) * phi ));
-      }
-      wqcnt[bin]->Fill(pt,eta);
-    }
-    
     return Noff;
   }
   
@@ -286,9 +247,16 @@ EvtPlaneCalibTree::EvtPlaneCalibTree(const edm::ParameterSet& iConfig) {
   inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
   
   genFlatPsi_ = iConfig.getUntrackedParameter<bool>("genFlatPsi_",true);
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
   FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
   NumFlatBins_ = iConfig.getUntrackedParameter<int>("NumFlatBins_",40);
   CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",5);
+
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
+  if(useNtrk_) {
+    NumFlatBins_ = ntrkbins;
+    CentBinCompression_ = 1;
+  }
   caloCentRef_ = iConfig.getUntrackedParameter<double>("caloCentRef_",80.);
   caloCentRefWidth_ = iConfig.getUntrackedParameter<double>("caloCentRefWidth_",5.);
   if(NumFlatBins_ > MaxNumFlatBins) {
@@ -353,9 +321,9 @@ EvtPlaneCalibTree::EvtPlaneCalibTree(const edm::ParameterSet& iConfig) {
     wqcnt[i]->SetOption("colz");
     wqcnt[i]->SetXTitle("p_{T} (GeV/c)");
     wqcnt[i]->SetYTitle("#eta");
-    for(int j = 0; j<6; j++) {
-      wqxtrk[j][i] = subdir.make<TH2D>(Form("wqxtrk%d_%d",j+2,i),Form("wqxtrk%d_%d",j+2,i),nptbins,ptbins, netabins, etabins);
-      wqytrk[j][i] = subdir.make<TH2D>(Form("wqytrk%d_%d",j+2,i),Form("wqytrk%d_%d",j+2,i),nptbins,ptbins, netabins, etabins);
+    for(int j = 0; j<7; j++) {
+      wqxtrk[j][i] = subdir.make<TH2D>(Form("wqxtrk%d_%d",j+1,i),Form("wqxtrk%d_%d",j+1,i),nptbins,ptbins, netabins, etabins);
+      wqytrk[j][i] = subdir.make<TH2D>(Form("wqytrk%d_%d",j+1,i),Form("wqytrk%d_%d",j+1,i),nptbins,ptbins, netabins, etabins);
       wqxtrk[j][i]->SetOption("colz");
       wqytrk[j][i]->SetOption("colz");
       wqxtrk[j][i]->SetXTitle("p_{T} (GeV/c)");
@@ -413,10 +381,8 @@ EvtPlaneCalibTree::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   centval = -1;
   vtx = -100;
   ntrkval = getNoff(iEvent,iSetup);
+  if(ntrkval==0) return;
   hNtrkoff->Fill(ntrkval);
-  htrkbins->Fill(ntrkval);
-  int bin = htrkbins->GetBin(ntrkval);
-  if(bin<1 || bin>ntrkbins) return;
 
   using namespace edm;
   using namespace std;
@@ -431,27 +397,32 @@ EvtPlaneCalibTree::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     newrun = kFALSE;
     //
     //Get Size of Centrality Table
-    //
-    // edm::ESHandle<CentralityTable> centDB_;
-    // iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    // nCentBins_ = (int) centDB_->m_table.size();
+    if(!useNtrk_) {
+      edm::ESHandle<CentralityTable> centDB_;
+      iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+      nCentBins_ = (int) centDB_->m_table.size();
+    }
   } //First event
   
   //
   //Get Centrality
   //
-  
-  // iEvent.getByToken(centralityBinToken, cbin_);
-  // cbin = *cbin_;
-  // bin = cbin/CentBinCompression_; 
-  
-  // double cscale = 100./nCentBins_;
-  // centval = cscale*cbin;
-  
-  // hcent->Fill(centval);
-  // hcentbins->Fill(cbin);
-  // bin = cbin/CentBinCompression_; 
-  
+  if(!useNtrk_) {
+    iEvent.getByToken(centralityBinToken, cbin_);
+    cbin = *cbin_;
+    bin = cbin/CentBinCompression_; 
+    
+    double cscale = 100./nCentBins_;
+    centval = cscale*cbin;
+    
+    hcent->Fill(centval);
+    hcentbins->Fill(cbin);
+    bin = cbin/CentBinCompression_; 
+  } else {
+    bin = htrkbins->FindBin(ntrkval);
+    htrkbins->Fill(bin);
+    if(bin<1 || bin>ntrkbins) return;
+  }
   //
   //Get Vertex
   //
@@ -516,6 +487,46 @@ EvtPlaneCalibTree::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
       ++i;
     }    
     tree->Fill();   
+    
+    //Fill offset hists
+    iEvent.getByToken(trackToken,trackCollection_);
+    for(reco::TrackCollection::const_iterator itTrack = trackCollection_->begin();
+	itTrack != trackCollection_->end();                      
+	++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( itTrack->pt() < 0.4 ) continue;
+      double phi = itTrack->phi();
+      double eta = itTrack->eta();
+      iEvent.getByToken(vertexToken, vertex_);
+      math::XYZPoint vtxPoint(0.0,0.0,0.0);
+      double vzErr =0.0, vxErr=0.0, vyErr=0.0;
+      if(vertex_->size()>0) {
+	vtxPoint=vertex_->begin()->position();
+	vzErr=vertex_->begin()->zError();
+	vxErr=vertex_->begin()->xError();
+	vyErr=vertex_->begin()->yError();
+      }
+      
+      double d0=0.0, dz=0.0, d0sigma=0.0, dzsigma=0.0;
+      d0 = -1.*itTrack->dxy(vtxPoint);
+      dz = itTrack->dz(vtxPoint);
+      d0sigma = sqrt(itTrack->d0Error()*itTrack->d0Error()+vxErr*vyErr);
+      dzsigma = sqrt(itTrack->dzError()*itTrack->dzError()+vzErr*vzErr);
+      
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      if ( fabs( dz/dzsigma ) > 3. ) continue;
+      if ( fabs( d0/d0sigma ) > 3. ) continue;
+      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
+      double pt = itTrack->pt();
+      for(int j = 0; j<7; j++) {
+	wqxtrk[j][bin]->Fill(pt, eta, cos( (1.+j) * phi ));
+	wqytrk[j][bin]->Fill(pt, eta, sin( (1.+j) * phi ));
+      }
+      wqcnt[bin]->Fill(pt,eta);
+    }
+
+
   }
 }
 
