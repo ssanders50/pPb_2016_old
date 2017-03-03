@@ -260,38 +260,6 @@ private:
     
 
     iEvent.getByLabel(trackTag_,trackCollection_);
-    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
-      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
-      if ( itTrack->charge() == 0 ) continue;
-      if ( fabs(itTrack->eta()) > 2.4 ) continue;
-      bool bPix = false;
-      int nHits = itTrack->numberOfValidHits();
-      if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
-      if ( not bPix ) {
-	if ( nHits < 11 ) continue;
-	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
-	  continue;
-	}
-	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
-	  continue;
-	}
-	double d0 = -1.* itTrack->dxy(v1);
-	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
-	if ( fabs( d0/derror ) > 3.0 ) {
-	  continue;
-	}
-	double dz=itTrack->dz(v1);
-	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
-	if ( fabs( dz/dzerror ) > 3.0 ) {
-	  continue;
-	}
-      }
-      
-      hptNtrk->Fill(itTrack->pt());
-      Noff++;
-    }
-    if(Noff < Noffmin_ || Noff > Noffmax_) return -2;
-
 
     for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
       if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
@@ -322,6 +290,7 @@ private:
 	}
       }
       hptNtrkGood->Fill(itTrack->pt());
+      if(itTrack->pt()>0.4) ++Noff;
       int ipt = qxtrk->GetXaxis()->FindBin(itTrack->pt());
       int ieta = qxtrk->GetYaxis()->FindBin(itTrack->eta());
       qxtrk->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(EPOrder_*itTrack->phi()) -wqxtrkRef[EPOrder_-1][bin]->GetBinContent(ipt,ieta));
@@ -390,6 +359,11 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   if(trackToken.isUninitialized()) {
     std::cout<<"trackToken is uninitialized."<<std::endl;
   }
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
+  if(useNtrk_) {
+    NumFlatBins_ = ntrkbins;
+    CentBinCompression_ = 1;
+  }
 
   inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
   inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
@@ -437,7 +411,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     //	mx = nCentBins_;
   }
   for(int i = 0; i<mx; i++) {
-    for(int j = 1; j<=6; j++){
+    for(int j = 1; j<=7; j++){
       wqxtrkRef[j-1][i] = (TH2D *) frecenter->Get(Form("wqxtrk_%d_%d",j,i));
       wqytrkRef[j-1][i] = (TH2D *) frecenter->Get(Form("wqytrk_%d_%d",j,i));
     }
@@ -591,21 +565,23 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     //Get Size of Centrality Table
     //
-    // edm::ESHandle<CentralityTable> centDB_;
-    // iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    // nCentBins_ = (int) centDB_->m_table.size();
-    // for(int i = 0; i<NumEPNames; i++) {
-    //   flat[i]->setCaloCentRefBins(-1,-1);
-    //   if(caloCentRef_>0) {
-    // 	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-    // 	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-    // 	minbin/=CentBinCompression_;
-    // 	maxbin/=CentBinCompression_;
-    // 	if(minbin>0 && maxbin>=minbin) {
-    // 	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
-    // 	}
-    //   }
-    // }
+    if(!useNtrk_) {
+      edm::ESHandle<CentralityTable> centDB_;
+      iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+      nCentBins_ = (int) centDB_->m_table.size();
+      for(int i = 0; i<NumEPNames; i++) {
+	flat[i]->setCaloCentRefBins(-1,-1);
+	if(caloCentRef_>0) {
+	  int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+	  int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+	  minbin/=CentBinCompression_;
+	  maxbin/=CentBinCompression_;
+	  if(minbin>0 && maxbin>=minbin) {
+	    if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+	  }
+	}
+      }
+    }
     //
     //Get flattening parameter file.  
     //
@@ -613,44 +589,44 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
     LoadEPDB * db = new LoadEPDB(flatparmsDB_,flat);
     if(!db->IsSuccess()) {
-      cout<<"Failed to load DB!"<<endl;
-      loadDB_ = kFALSE;
+ 	std::cout<<"Flattening db inconsistancy, will continue without: "<<std::endl;
+     loadDB_ = kFALSE;
     }        
-    if(teff) teff->setRunNumber(runno_);
   } //First event
   
   
   // //
   // //Get Centrality
   // //
-  // //int bin = 0;
+
    int Noff=0;
 
-   //iEvent.getByToken(centralityBinToken, cbin_);
-   //int cbin = *cbin_;
-  // //bin = cbin/CentBinCompression_; 
-  //double cscale = 100./nCentBins_;
-  //centval = cscale*cbin;
   int bin = 0;
-  iEvent.getByToken(tag_,cbin_);
-  ntrkval = *cbin_;
-  //hNtrkoff->Fill(ntrkval);
-  bin = NtrkToBin(ntrkval);
-  centval = bin;
+  if(!useNtrk_) {
+    int ntrkval=0;
+    if(Noffmin_>=0) {
+      iEvent.getByToken(centralityToken, centrality_);
+      ntrkval = centrality_->Ntracks();
+      if ( (ntrkval < Noffmin_) || (ntrkval >= Noffmax_) ) {
+	return;
+      }
+    }
 
-
-  Noff = getNoff( iEvent, iSetup,centval);
-  if(Noff<=0) {
-    hNtrkRet->Fill(fabs(Noff));
+   iEvent.getByToken(centralityBinToken, cbin_);
+   int cbin = *cbin_;
+   bin = cbin/CentBinCompression_; 
+   double cscale = 100./nCentBins_;
+   centval = cscale*cbin;
+   
+   
   } else {
-    hNtrkoff->Fill(Noff);
-  }
-  if(useNtrkBins_) {
-    //bin = (int) (0.99*((float)NumFlatBins_)*((float) (Noff-Noffmin_)/(float) (Noffmax_-Noffmin_)));
-    int bin = NtrkToBin(Noff);
-    
+    iEvent.getByToken(tag_,cbin_);
+    ntrkval = *cbin_;
+    hNtrkoff->Fill(ntrkval);
+    bin = NtrkToBin(ntrkval)-1;
     centval = bin;
   }
+
   hcent->Fill(centval);
   hcentbins->Fill(bin);
   // //
@@ -735,9 +711,10 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if ( Noff == -2 ) {
     return;
   }
-  hNtrkoff->Fill(Noff);
-
-   tree->Fill(); 
+  getNoff(iEvent, iSetup, bin);
+  hNtrkoff->Fill(ntrkval);
+  
+  tree->Fill(); 
 }
 
 
