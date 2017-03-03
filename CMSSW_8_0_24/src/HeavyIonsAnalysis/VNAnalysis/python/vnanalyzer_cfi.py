@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 vnanalyzer = cms.EDAnalyzer("VNAnalyzer",
-                            vertexTag_=cms.InputTag("hiSelectedVertex"),
+                            vertexTag_=cms.InputTag("offlinePrimaryVertices"),
                             centralityTag_=cms.InputTag("hiCentrality"),
                             inputPlanesTag_ = cms.InputTag("hiEvtPlaneFlat"),
                             centralityBinTag_ = cms.InputTag("centralityBin","HFtowers"),
