@@ -501,7 +501,6 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
       wqytrk[j-1][i] = (TH2D *) frecenter->Get(Form("wqytrk_%d_%d",j,i));
     }
   }
-
   for(int i = 0; i<ntrkbins; i++) {
     TFileDirectory subdir = fs->mkdir(Form("%d_%d",(int)trkBins[i],(int)trkBins[i+1]));
     wqcntRecenter[i]   = subdir.make<TH2D>("wqcntRecenter","wqcntRecenter", nptbins,ptbins, netabins, etabins);

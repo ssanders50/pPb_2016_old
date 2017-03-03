@@ -419,8 +419,8 @@ EvtPlaneCalibTree::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     hcentbins->Fill(cbin);
     bin = cbin/CentBinCompression_; 
   } else {
-    bin = htrkbins->FindBin(ntrkval);
-    htrkbins->Fill(bin);
+    bin = htrkbins->FindBin(ntrkval)-1;
+    htrkbins->Fill(ntrkval);
     if(bin<1 || bin>ntrkbins) return;
   }
   //
