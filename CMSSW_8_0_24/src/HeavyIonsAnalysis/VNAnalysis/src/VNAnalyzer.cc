@@ -61,30 +61,18 @@ using namespace std;
 #include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
 #include "RecoHI/HiEvtPlaneAlgos/interface/LoadEPDB.h"
 using namespace hi;
+using namespace edm;
 
-static const int ntrkbins = 16;
-static const  int trkBins[]={0,20,30,40,50,60,80,100,120,150,185,220,260,300,350,500,1000};
-
-static const int nptbinsDefault = 9;
-static const double ptbinsDefault[]={12.0, 14.0, 20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
-//  0.2,  0.3,  0.4,  0.5,  0.6,  0.8,  1.0,  1.2,  1.6,  2.0,
-//  2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  8.0, 
-//  10.0, 14.0, 20.0, 30.0, 40.0, 50.0, 70.0, 100.};
-
-static const int nptbinsMBDefault = 16;
-static const double ptbinsMBDefault[]={0.3,0.4,0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
-				       2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0};
+static const int ntrkbins = 25;
+static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+static const int nptbins = 28;
+static const float ptbins[]={0.3, 0.4, 0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
+			      2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0, 10., 12.0, 14.0, 16.0,  20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
 
 static const int MaxTracks = 50;
 
-//static const int nptbinsDefault = 24;
-//static const double ptbinsDefault[]={0.6,0.8,
-//  1.00, 1.25, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 5.00, 6.00, 7.00, 8.00, 10.0, 12.0, 14.0, 20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
-//  0.2,  0.3,  0.4,  0.5,  0.6,  0.8,  1.0,  1.2,  1.6,  2.0,
-//  2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  8.0, 
-//  10.0, 14.0, 20.0, 30.0, 40.0, 50.0, 70.0, 100.};
 static const int netabinsDefault = 12;
-static const double etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
+static const float etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
 
 
 //
@@ -118,10 +106,12 @@ private:
   edm::InputTag centralityBinTag_;
   edm::EDGetTokenT<int> centralityBinToken;
   edm::Handle<int> cbin_;
+  edm::EDGetTokenT<int> tag_;
 
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
   edm::Handle<reco::Centrality> centrality_;
+
 
   edm::InputTag pfTag_;
   edm::EDGetTokenT<reco::PFCandidateCollection> pfToken_;
@@ -140,6 +130,8 @@ private:
   edm::Handle<reco::EvtPlaneCollection> inputPlanes_;
 
   edm::Service<TFileService> fs;
+  TFile * frecenter;
+  string offsetFileName;
 
   double caloCentRef_;
   double caloCentRefWidth_;
@@ -147,6 +139,7 @@ private:
   int caloCentRefMaxBin_;
 
   double nCentBins_;
+  bool useNtrk_;
 
   int vs_sell;   // vertex collection size
   float vzr_sell;
@@ -156,10 +149,9 @@ private:
   TH1D * hptNtrk;
   TH1D * hptNtrkGood;
   TH1I * hNtrkRet;
-  TH2D * hEff[10];
-  TH2D * hw[10];
+  TH2D * hEff[ntrkbins];
   double centval;
-  double ntrkval;
+  int ntrkval;
   double vtx;
   int Noff;
   double reso_;
@@ -214,10 +206,6 @@ private:
   TH2D * qxtrk3;
   TH2D * qytrk3;
   TH2D * qcnt;
-  TH2D * wqxtrk;
-  TH2D * wqytrk;
-  TH2D * wqcnt;
-  TH2D * weff;
   TH2D * avpt;
   HiEvtPlaneFlatten * flat[NumEPNames];
   bool loadDB_;
@@ -227,6 +215,8 @@ private:
   bool MB_;
   int minrun_;
   int maxrun_;
+  TH2D * wqxtrkRef[7][40];
+  TH2D * wqytrkRef[7][40];
 
 
   int ntrack;
@@ -234,7 +224,7 @@ private:
   float spphi[MaxTracks];
   float speta[MaxTracks];
 
-  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup, double cent)
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup, int bin)
   {
     int Noff = 0;
     using namespace edm;
@@ -246,12 +236,6 @@ private:
       qytrk3->Reset();
     }
     qcnt->Reset();
-    if(teff) {
-      wqxtrk->Reset();
-      wqytrk->Reset();
-      wqcnt->Reset();
-      weff->Reset();
-    }
     avpt->Reset();
     
     iEvent.getByToken(vertexToken,vertex_);
@@ -291,15 +275,6 @@ private:
 	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
 	  continue;
 	}
-	if (
-	    itTrack->pt() > 2.4 and
-	    itTrack->originalAlgo() != 4 and
-	    itTrack->originalAlgo() != 5 and
-	    itTrack->originalAlgo() != 6 and
-	    itTrack->originalAlgo() != 7
-	    ) {
-	  continue;
-	}
 	double d0 = -1.* itTrack->dxy(v1);
 	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
 	if ( fabs( d0/derror ) > 3.0 ) {
@@ -312,7 +287,7 @@ private:
 	}
       }
       
-      if(itTrack->eta()<1&&cent>=0&&cent<50) hptNtrk->Fill(itTrack->pt());
+      hptNtrk->Fill(itTrack->pt());
       Noff++;
     }
     if(Noff < Noffmin_ || Noff > Noffmax_) return -2;
@@ -333,15 +308,6 @@ private:
 	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
 	  continue;
 	}
-	if (
-	    itTrack->pt() > 2.4 and
-	    itTrack->originalAlgo() != 4 and
-	    itTrack->originalAlgo() != 5 and
-	    itTrack->originalAlgo() != 6 and
-	    itTrack->originalAlgo() != 7
-	    ) {
-	  continue;
-	}
 	
 	double d0 = -1.* itTrack->dxy(v1);
 	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
@@ -355,31 +321,20 @@ private:
 	  continue;
 	}
       }
-      if(itTrack->eta()<1&&cent>=0&&cent<5&&itTrack->pt()>0.4) hptNtrkGood->Fill(itTrack->pt());
-      qxtrk->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(EPOrder_*itTrack->phi()));
-      qytrk->Fill(itTrack->pt(),itTrack->eta(), TMath::Sin(EPOrder_*itTrack->phi()));
+      hptNtrkGood->Fill(itTrack->pt());
+      int ipt = qxtrk->GetXaxis()->FindBin(itTrack->pt());
+      int ieta = qxtrk->GetYaxis()->FindBin(itTrack->eta());
+      qxtrk->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(EPOrder_*itTrack->phi()) -wqxtrkRef[EPOrder_-1][bin]->GetBinContent(ipt,ieta));
+      qytrk->Fill(itTrack->pt(),itTrack->eta(), TMath::Sin(EPOrder_*itTrack->phi()) - wqytrkRef[EPOrder_-1][bin]->GetBinContent(ipt,ieta));
       if(EPOrder_ == 2) {
-	qxtrk3->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(3.*itTrack->phi()));
-	qytrk3->Fill(itTrack->pt(),itTrack->eta(), TMath::Sin(3.*itTrack->phi()));
+	qxtrk3->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(3.*itTrack->phi()) - wqxtrkRef[2][bin]->GetBinContent(ipt,ieta));
+	qytrk3->Fill(itTrack->pt(), itTrack->eta(), TMath::Sin(3.*itTrack->phi()) - wqytrkRef[2][bin]->GetBinContent(ipt,ieta));
       }
       qcnt->Fill(itTrack->pt(), itTrack->eta());
       avpt->Fill(itTrack->pt(), itTrack->eta(), itTrack->pt());
       
-      if(teff) {
-	double w = teff->getEfficiencies(itTrack->pt(),cent,itTrack->phi(),itTrack->eta());
-	if(w>0.0 ) {
-	  wqxtrk->Fill(itTrack->pt(), itTrack->eta(), TMath::Cos(EPOrder_*itTrack->phi())/w);
-	  wqytrk->Fill(itTrack->pt(), itTrack->eta(), TMath::Sin(EPOrder_*itTrack->phi())/w);
-	  wqcnt->Fill(itTrack->pt(), itTrack->eta());
-	  weff->Fill(itTrack->pt(), itTrack->eta(),1/w);
-	  hw[(int)(cent/10.)]->Fill(itTrack->phi(),itTrack->eta(), 1/w);
-	  hEff[(int)(cent/10.)]->Fill(itTrack->phi(),itTrack->eta(), 1.);
-	  
-	}
-      }
-      
       if( itTrack->pt() < 0.2 ) continue;
-      if(!teff) hEff[(int)(cent/10.)]->Fill(itTrack->phi(),itTrack->eta());
+      hEff[bin]->Fill(itTrack->phi(),itTrack->eta());
     }
     return Noff;
   }
@@ -424,7 +379,6 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   if(centralityToken.isUninitialized()) {
     std::cout<<"centralityToken is uninitialized."<<std::endl;
   }
-
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
   vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
   if(vertexToken.isUninitialized()) {
@@ -442,6 +396,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   if(inputPlanesToken.isUninitialized()) {
     std::cout<<"inputPlanesToken is uninitialized."<<std::endl;
   }
+  tag_ = consumes<int>(iConfig.getParameter<edm::InputTag>("BinLabel"));
 
   EPOrder_ = iConfig.getUntrackedParameter<int>("EPOrder_",2);
   FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
@@ -473,6 +428,20 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   maxvz_ = iConfig.getUntrackedParameter<double>("maxvz_", 15.);
   dzerr_ = iConfig.getParameter<double>("dzerr") ;
   chi2_  = iConfig.getParameter<double>("chi2") ;
+  offsetFileName = iConfig.getUntrackedParameter<std::string>("offsetFile");
+  frecenter = new TFile(offsetFileName.data(),"read");
+  int mx = ntrkbins;
+  if(!useNtrk_) {
+    mx = 0;
+    cout<<"need to set this up"<<endl;
+    //	mx = nCentBins_;
+  }
+  for(int i = 0; i<mx; i++) {
+    for(int j = 1; j<=6; j++){
+      wqxtrkRef[j-1][i] = (TH2D *) frecenter->Get(Form("wqxtrk_%d_%d",j,i));
+      wqytrkRef[j-1][i] = (TH2D *) frecenter->Get(Form("wqytrk_%d_%d",j,i));
+    }
+  }
 
   std::cout<<"==============================================="<<std::endl;
   std::cout<<"centralityBinTag_           "<<centralityBinTag_.encode()<<std::endl;
@@ -499,25 +468,12 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     std::cout<<"bCaloMatching_              true"<<std::endl;
     std::cout<<"reso_                     "<<reso_<<std::endl;   
   }
-  if(MB_) {
-    std::cout<<"MB_                          true"<<std::endl;
-  }
   std::cout<<"dzerr_                       "<<dzerr_<<std::endl;
   std::cout<<"chi2_                        "<<chi2_<<std::endl;
   std::cout<<"==============================================="<<std::endl;
 
   hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,3000);
-  double npt = nptbinsDefault;
-  if(MB_) npt = nptbinsMBDefault;
-  double ptbins[40];
-  for(int i = 0; i<=npt; i++) {
-    if(MB_) {
-      ptbins[i] = ptbinsMBDefault[i];
-    } else {
-      ptbins[i] = ptbinsDefault[i];
-    }
-  }
-  std::cout<<"npt: "<<npt<<std::endl;
+  int npt = nptbins;
   qxtrk = fs->make<TH2D>(Form("qxtrk_v%d",EPOrder_),Form("qxtrk_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
   qytrk = fs->make<TH2D>(Form("qytrk_v%d",EPOrder_),Form("qytrk_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
   if(EPOrder_ == 2) {
@@ -525,12 +481,6 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     qytrk3 = fs->make<TH2D>("qytrk_v3","qytrk_v3",npt,ptbins, netabinsDefault, etabinsDefault);
   }
   qcnt =  fs->make<TH2D>(Form("qcnt_v%d",EPOrder_), Form("qcnt_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
-  if(teff) {
-    wqxtrk = fs->make<TH2D>(Form("wqxtrk_v%d",EPOrder_),Form("wqxtrk_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
-    wqytrk = fs->make<TH2D>(Form("wqytrk_v%d",EPOrder_),Form("wqytrk_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
-    wqcnt =  fs->make<TH2D>(Form("wqcnt_v%d",EPOrder_), Form("wqcnt_v%d",EPOrder_),npt,ptbins, netabinsDefault, etabinsDefault);
-    weff =  fs->make<TH2D>("weff","weff",npt,ptbins, netabinsDefault, etabinsDefault);
-  }
   avpt =  fs->make<TH2D>("avpt","avpt",npt,ptbins, netabinsDefault, etabinsDefault);
 
   hcent = fs->make<TH1D>("cent","cent",220,-10,110);
@@ -550,17 +500,10 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     hEff[i]->SetXTitle("#phi (radians)");
     hEff[i]->SetYTitle("#eta");
     hEff[i]->SetOption("colz");
-
-    TString hnw = Form("Effw_%d_%d",10*i,10*(i+1));
-    hw[i] = fs->make<TH2D>(hnw.Data(),hnw.Data(),50,-TMath::Pi(),TMath::Pi(),50,-2.4,2.4);
-    hw[i]->Sumw2();
-    hw[i]->SetXTitle("#phi (radians)");
-    hw[i]->SetYTitle("#eta");
-    hw[i]->SetOption("colz");
   }
   TString epnames = EPNames[0].data();
   epnames = epnames+"/D";
-
+  NumFlatBins_ = ntrkbins;
   for(int i = 0; i<NumEPNames; i++) {
     if(i>0) epnames = epnames + ":" + EPNames[i].data() + "/D";
     TFileDirectory subdir = fs->mkdir(Form("%s",EPNames[i].data()));
@@ -593,6 +536,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
 
   tree->Branch("Cent",&centval,"cent/D");
   tree->Branch("NtrkOff",&Noff,"Noff/I");
+  tree->Branch("ntrkflat",&ntrkval,"nofftrak/I");
   tree->Branch("Vtx",&vtx,"vtx/D");
   tree->Branch("epang",&epang, epnames.Data());
   tree->Branch("eporig",&eporig, epnames.Data());
@@ -613,12 +557,6 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     tree->Branch("qytrk_v3", "TH2D",  &qytrk3, 128000, 0);
   }
   tree->Branch(Form("qcnt_v%d",EPOrder_),    "TH2D",  &qcnt, 128000, 0);
-  if(teff) {
-    tree->Branch(Form("wqxtrk_v%d",EPOrder_),   "TH2D",  &wqxtrk, 128000, 0);
-    tree->Branch(Form("wqytrk_v%d",EPOrder_),   "TH2D",  &wqytrk, 128000, 0);
-    tree->Branch(Form("wqcnt_v%d",EPOrder_),    "TH2D",  &wqcnt, 128000, 0);
-    tree->Branch(Form("weff_v%d",EPOrder_),    "TH2D",  &weff, 128000, 0);
-  }
   tree->Branch("avpt",    "TH2D",  &avpt, 128000, 0);
 }
 
@@ -626,7 +564,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
 
 VNAnalyzer::~VNAnalyzer()
 {
-  
+  frecenter->Close();  
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
 }
@@ -653,21 +591,21 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     //Get Size of Centrality Table
     //
-    edm::ESHandle<CentralityTable> centDB_;
-    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    nCentBins_ = (int) centDB_->m_table.size();
-    for(int i = 0; i<NumEPNames; i++) {
-      flat[i]->setCaloCentRefBins(-1,-1);
-      if(caloCentRef_>0) {
-   	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-   	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-   	minbin/=CentBinCompression_;
-   	maxbin/=CentBinCompression_;
-   	if(minbin>0 && maxbin>=minbin) {
-   	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
-   	}
-      }
-    }
+    // edm::ESHandle<CentralityTable> centDB_;
+    // iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+    // nCentBins_ = (int) centDB_->m_table.size();
+    // for(int i = 0; i<NumEPNames; i++) {
+    //   flat[i]->setCaloCentRefBins(-1,-1);
+    //   if(caloCentRef_>0) {
+    // 	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+    // 	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+    // 	minbin/=CentBinCompression_;
+    // 	maxbin/=CentBinCompression_;
+    // 	if(minbin>0 && maxbin>=minbin) {
+    // 	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+    // 	}
+    //   }
+    // }
     //
     //Get flattening parameter file.  
     //
@@ -688,11 +626,19 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // //int bin = 0;
    int Noff=0;
 
-  iEvent.getByToken(centralityBinToken, cbin_);
-  int cbin = *cbin_;
+   //iEvent.getByToken(centralityBinToken, cbin_);
+   //int cbin = *cbin_;
   // //bin = cbin/CentBinCompression_; 
-  double cscale = 100./nCentBins_;
-  centval = cscale*cbin;
+  //double cscale = 100./nCentBins_;
+  //centval = cscale*cbin;
+  int bin = 0;
+  iEvent.getByToken(tag_,cbin_);
+  ntrkval = *cbin_;
+  //hNtrkoff->Fill(ntrkval);
+  bin = NtrkToBin(ntrkval);
+  centval = bin;
+
+
   Noff = getNoff( iEvent, iSetup,centval);
   if(Noff<=0) {
     hNtrkRet->Fill(fabs(Noff));
@@ -706,7 +652,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     centval = bin;
   }
   hcent->Fill(centval);
-  hcentbins->Fill(cbin);
+  hcentbins->Fill(bin);
   // //
   // //Get Vertex
   // //
