@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 checkflattening = cms.EDAnalyzer("CheckFlattening",
-                                 vertexTag_=cms.InputTag("hiSelectedVertex"),
+                                 vertexTag_=cms.InputTag("offlinePrimaryVertices"),
                                  centralityTag_=cms.InputTag("hiCentrality"),
                                  centralityBinTag_ = cms.InputTag("centralityBin","HFtowers"),
                                  centralityVariable = cms.string("HFtowers"),
@@ -14,6 +14,9 @@ checkflattening = cms.EDAnalyzer("CheckFlattening",
                                  NumFlatBins_ = cms.int32(40),
                                  CentBinCompression_ = cms.int32(5),
                                  trackTag_=cms.InputTag("hiGeneralAndPixelTracks"),                           
+                                 BinLabel = cms.InputTag("Noff"),
+                                 offsetFile = cms.string("offset_pPb2016_MB_1_285832.root"),
+                                 useNtrk = cms.untracked.bool(False),
                                  Noffmin_ = cms.int32 (-1),
                                  Noffmax_ = cms.int32 (10000),
                                  Branch_Cent = cms.untracked.bool(True),
