@@ -51,6 +51,10 @@
 
 using namespace std;
 using namespace hi;
+using namespace edm;
+static const int ntrkbins = 25;
+static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+
 
 #include <vector>
 using std::vector;
@@ -80,6 +84,9 @@ private:
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
 
+  edm::Handle<int> cbin_;
+  edm::EDGetTokenT<int> tag_;
+
   edm::InputTag vertexTag_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
 
@@ -92,7 +99,7 @@ private:
 
   edm::ESWatcher<HeavyIonRcd> hiWatcher;
   edm::ESWatcher<HeavyIonRPRcd> hirpWatcher;
-
+  bool useNtrk_;
   const int FlatOrder_;
   int NumFlatBins_;
   double caloCentRef_;
@@ -103,6 +110,13 @@ private:
   HiEvtPlaneFlatten * flat[NumEPNames];
   bool useOffsetPsi_;
   double nCentBins_;
+  int ntrkval;
+  int NtrkToBin(int ntrk){
+    for(int i = 0; i<=ntrkbins; i++) {
+      if(ntrk < trkBins[i]) return i;
+    }
+    return ntrkbins;
+  }
 };
 //
 // constants, enums and typedefs
@@ -153,9 +167,17 @@ HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
 
   inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
 
+  tag_ = consumes<int>(iConfig.getParameter<edm::InputTag>("BinLabel"));
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
+  if(useNtrk_) {
+    NumFlatBins_ = ntrkbins;
+    CentBinCompression_ = 1;
+  }
+
   //register your products
   produces<reco::EvtPlaneCollection>();
    //now do what ever other initialization is needed
+  NumFlatBins_ = ntrkbins;
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
     flat[i]->init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
@@ -195,24 +217,25 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
 
     //
     //Get Size of Centrality Table
-    //
-    edm::ESHandle<CentralityTable> centDB_;
-    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    nCentBins_ = centDB_->m_table.size();
-    for(int i = 0; i<NumEPNames; i++) {
-      flat[i]->setCaloCentRefBins(-1,-1);
-      if(caloCentRef_>0) {
-	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-	minbin/=CentBinCompression_;
-	maxbin/=CentBinCompression_;
-	if(minbin>0 && maxbin>=minbin) {
-	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+  //   //
+    if(!useNtrk_) {
+      edm::ESHandle<CentralityTable> centDB_;
+      iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+      nCentBins_ = centDB_->m_table.size();
+      for(int i = 0; i<NumEPNames; i++) {
+	flat[i]->setCaloCentRefBins(-1,-1);
+	if(caloCentRef_>0) {
+	  int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+	  int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+	  minbin/=CentBinCompression_;
+	  maxbin/=CentBinCompression_;
+	  if(minbin>0 && maxbin>=minbin) {
+	    if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+	  }
 	}
       }
     }
   }
-
   if( hirpWatcher.check(iSetup) ) {
     edm::ESHandle<RPFlatParams> flatparmsDB_;
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
@@ -222,22 +245,29 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   //Get Centrality
   //
-
+  
   int bin = 0;
-  edm::Handle<int> cbin_;
-  iEvent.getByToken(centralityBinToken, cbin_);
-  int cbin = *cbin_;
-  bin = cbin/CentBinCompression_;
-
-  if(Noffmin_>=0) {
-    edm::Handle<reco::Centrality> centrality_;
-    iEvent.getByToken(centralityToken, centrality_);
-    int Noff = centrality_->Ntracks();
-    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
-      return;
+  if(!useNtrk_) {
+    edm::Handle<int> cbin_;
+    iEvent.getByToken(centralityBinToken, cbin_);
+    int cbin = *cbin_;
+    bin = cbin/CentBinCompression_;
+    
+    if(Noffmin_>=0) {
+      edm::Handle<reco::Centrality> centrality_;
+      iEvent.getByToken(centralityToken, centrality_);
+      int Noff = centrality_->Ntracks();
+      if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+	return;
+      }
     }
+    
+  } else {
+    bin = 0;
+    iEvent.getByToken(tag_,cbin_);
+    ntrkval = *cbin_;
+    bin = NtrkToBin(ntrkval);
   }
-  //
   //Get Vertex
   //
   int vs_sell;   // vertex collection size
@@ -296,7 +326,7 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   }
   iEvent.put(evtplaneOutput);
   for(int i = 0; i<indx; i++) delete ep[i];
-}
+  }
 
 
 //define this as a plug-in

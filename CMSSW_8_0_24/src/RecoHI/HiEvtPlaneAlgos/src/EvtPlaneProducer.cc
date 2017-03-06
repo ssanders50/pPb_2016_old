@@ -68,6 +68,9 @@ Implementation:
 
 using namespace std;
 using namespace hi;
+using namespace edm;
+static const int ntrkbins = 25;
+static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
 //
 // class decleration
@@ -86,7 +89,7 @@ namespace hi {
       sumcos=0;
       sumsinNoWgt=0;
       sumcosNoWgt=0;
-
+      
       mult = 0;
       order = (double) orderval;
     }
@@ -98,7 +101,7 @@ namespace hi {
 	sumcos+=w*c;
 	sumsinNoWgt+=s;
 	sumcosNoWgt+=c;
-
+	
 	sumw+=fabs(w);
 	sumw2+=w*w;
 	sumPtOrEt+=PtOrEt;
@@ -106,7 +109,7 @@ namespace hi {
 	++mult;
       }
     }
-
+    
     double getAngle(double &ang, double &sv, double &cv, double &svNoWgt, double &cvNoWgt,  double &w, double &w2, double &PtOrEt, double &PtOrEt2, uint &epmult){
       ang = -10;
       sv = 0;
@@ -139,7 +142,7 @@ namespace hi {
     string epname;
     double etamin1;
     double etamax1;
-
+    
     double etamin2;
     double etamax2;
     double sumsin;
@@ -153,7 +156,7 @@ namespace hi {
     double sumPtOrEt2;
     double order;
   };
-}
+}  
 
 class EvtPlaneProducer : public edm::stream::EDProducer<> {
 public:
@@ -173,6 +176,9 @@ private:
 
   edm::InputTag centralityBinTag_;
   edm::EDGetTokenT<int> centralityBinToken;
+
+  edm::Handle<int> cbin_;
+  edm::EDGetTokenT<int> tag_;
 
 
   edm::InputTag vertexTag_;
@@ -195,6 +201,7 @@ private:
   edm::ESWatcher<HeavyIonRPRcd> hirpWatcher;
 
   bool loadDB_;
+  bool useNtrk_;
   double minet_;
   double maxet_;
   double minpt_;
@@ -205,11 +212,18 @@ private:
   double chi2_;
   int FlatOrder_;
   int NumFlatBins_;
+  HiEvtPlaneFlatten * flat[NumEPNames];
   double nCentBins_;
   double caloCentRef_;
   double caloCentRefWidth_;
   int CentBinCompression_;
-  HiEvtPlaneFlatten * flat[NumEPNames];
+  int ntrkval;
+  int NtrkToBin(int ntrk){
+    for(int i = 0; i<=ntrkbins; i++) {
+      if(ntrk < trkBins[i]) return i;
+    }
+    return ntrkbins;
+  }
 };
 
 EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig):
@@ -252,10 +266,18 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig):
 
   trackToken = consumes<reco::TrackCollection>(trackTag_);
 
+  tag_ = consumes<int>(iConfig.getParameter<edm::InputTag>("BinLabel"));
+  useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
+  if(useNtrk_) {
+    NumFlatBins_ = ntrkbins;
+    CentBinCompression_ = 1;
+  }
+
   produces<reco::EvtPlaneCollection>();
   for(int i = 0; i<NumEPNames; i++ ) {
     rp[i] = new GenPlane(EPNames[i].data(),EPEtaMin1[i],EPEtaMax1[i],EPEtaMin2[i],EPEtaMax2[i],EPOrder[i]);
   }
+  NumFlatBins_ = ntrkbins;
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
     flat[i]->init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
@@ -287,29 +309,31 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   using namespace edm;
   using namespace std;
   using namespace reco;
-
+  int bin;
   if( loadDB_ && (hiWatcher.check(iSetup) || hirpWatcher.check(iSetup)) ) {
     //
     //Get Size of Centrality Table
     //
-    edm::ESHandle<CentralityTable> centDB_;
-    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    nCentBins_ = centDB_->m_table.size();
-    for(int i = 0; i<NumEPNames; i++) {
-      if(caloCentRef_>0) {
-	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
-	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
-	minbin/=CentBinCompression_;
-	maxbin/=CentBinCompression_;
-	if(minbin>0 && maxbin>=minbin) {
-	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+    if(!useNtrk_) {
+      edm::ESHandle<CentralityTable> centDB_;
+      iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+      nCentBins_ = centDB_->m_table.size();
+      for(int i = 0; i<NumEPNames; i++) {
+	if(caloCentRef_>0) {
+	  int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+	  int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+	  minbin/=CentBinCompression_;
+	  maxbin/=CentBinCompression_;
+	  if(minbin>0 && maxbin>=minbin) {
+	    if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->setCaloCentRefBins(minbin,maxbin);
+	  }
 	}
       }
     }
-
     //
     //Get flattening parameter file.  
     //
+
     if ( loadDB_ ) {
 	edm::ESHandle<RPFlatParams> flatparmsDB_;
 	iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
@@ -324,12 +348,18 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   //Get Centrality
   //
-  int bin = 0;
+  bin = 0;
   if(loadDB_) {
-    edm::Handle<int> cbin_;
-    iEvent.getByToken(centralityBinToken, cbin_);
-    int cbin = *cbin_;
-    bin = cbin/CentBinCompression_;
+    if(!useNtrk_) {
+      edm::Handle<int> cbin_;
+      iEvent.getByToken(centralityBinToken, cbin_);
+      int cbin = *cbin_;
+      bin = cbin/CentBinCompression_;
+    } else {
+      iEvent.getByToken(tag_,cbin_);
+      ntrkval = *cbin_;
+      bin = NtrkToBin(ntrkval);
+    }
   }
   //
   //Get Vertex
