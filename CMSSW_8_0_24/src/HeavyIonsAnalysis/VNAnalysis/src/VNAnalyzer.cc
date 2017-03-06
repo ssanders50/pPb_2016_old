@@ -383,7 +383,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   minrun_ = iConfig.getUntrackedParameter<int>("minrun_", 0);
   maxrun_ = iConfig.getUntrackedParameter<int>("maxrun_", 50000);	
   effTable_ = iConfig.getParameter<std::string>("effTable_");
-  bCaloMatching_ = iConfig.getUntrackedParameter<bool>("bCaloMaching", true);
+  bCaloMatching_ = iConfig.getUntrackedParameter<bool>("bCaloMaching", false);
   MB_ = iConfig.getUntrackedParameter<bool>("MB_",true);
 
   nvtx_ = iConfig.getUntrackedParameter<int>("nvtx_", 100);
@@ -467,7 +467,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   hptNtrkGood->SetXTitle("p_{T} (GeV/c)");
   hptNtrkGood->SetYTitle("Ntrks (Good) (|#eta|<1; 0-5)");
   hNtrkRet = fs->make<TH1I>("NtrkRet","NtrkRet", 10,0,10);
-  for(int i = 0; i<10; i++) {
+  for(int i = 0; i<ntrkbins; i++) {
     TString hn = Form("Eff_%d_%d",10*i,10*(i+1));
     hEff[i] = fs->make<TH2D>(hn.Data(),hn.Data(),50,-TMath::Pi(),TMath::Pi(),50,-2.4,2.4);
     hEff[i]->Sumw2();
@@ -490,6 +490,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     if(EPOrder[i]==4 ) psirange = 1;
     if(EPOrder[i]==5) psirange = 0.8;
     if(EPOrder[i]==6) psirange = 0.6;
+    if(EPOrder[i]==7) psirange = 0.5;
 
     hPsi[i] = subdir.make<TH1D>("psi","psi",800,-psirange,psirange);
     hPsi[i]->SetXTitle("#Psi");
@@ -686,7 +687,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        eporig[indx]=rp->angle(0);
        epsin[indx] = rp->sumSin();
        epcos[indx] = rp->sumCos();
-       if(centval<80 && fabs(vtx)<15) {
+       if(rp->mult()>3 && fabs(vtx)<15) {
 	 hPsi[indx]->Fill(rp->angle(0));
 	 hPsiOffset[indx]->Fill(rp->angle(1));
 	 hPsiFlat[indx]->Fill(rp->angle(2));
