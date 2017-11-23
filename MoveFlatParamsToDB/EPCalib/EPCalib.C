@@ -1,6 +1,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
+#include "TH2D.h"
 #include "TH1I.h"
 #include "TDirectory.h"
 #include <iostream>
@@ -10,9 +11,10 @@
 #include "HiEvtPlaneList.h"
 #include "HiEvtPlaneFlatten.h"
 
+static const int maxfiles = -1;
 
 static const int ntrkbins = 25;
-static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+static const  int trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
 using namespace hi;
 using namespace std;
@@ -119,24 +121,37 @@ float EPAngs[NumEPNames];
 int nentries;
 int totentries;
 int ncnt;
+
+TH2D * wqcnt[40];
+TH2D * wqxtrk[7][40];
+TH2D * wqytrk[7][40];
+
+
 FILE * save;
+string savename;
+string savetag;
 #include "src/Loop0.h"
 #include "src/Loop1.h"
 #include "src/Loop2.h"
 #include "src/Loop3.h"
 #include "src/rescor.h"
 
-void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
+void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000, string tag=""){
+  savetag=tag;
   minRun_ = minRun;
   maxRun_ = maxRun;
   cout<<"minRun: "<<minRun_<<endl;
   cout<<"maxRun: "<<maxRun_<<endl;
-  save = fopen("tmpsave","wb");
+  savename = "/rfs/sanders/tmp_"+tag;
+  save = fopen(savename.data(),"wb");
+  cout<<savename<<" : "<<save<<endl;
   int Hbins = 0;
   int Obins = 0;
   char buf[200];
   FILE * list;
-  list = fopen("tmp.lis","r");
+  string listname = tag+".lis";
+  list = fopen(listname.data(),"r");
+  cout<<listname<<" : "<<list<<endl;
   TString fnames[8000];
   memset(buf,0,sizeof(buf));
   int lcnt = 0;
@@ -146,8 +161,11 @@ void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
     memset(buf,0,sizeof(buf));
     ++lcnt;
   }
+  if(maxfiles>0) lcnt = maxfiles;
   fclose(list);
-  TFile * tfout = new TFile("EP.root","recreate");
+  string epname = "/rfs/sanders/EP_"+tag+".root";
+  cout<<epname<<endl;
+  TFile * tfout = new TFile(epname.data(),"recreate");
   TDirectory * outdir = tfout->mkdir("hiEvtPlaneFlatCalib");
   outdir->cd();
   TString epnames = EPNames[0].data();
@@ -199,7 +217,7 @@ void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
   cout<<"FlatOrder_            "<<FlatOrder_<<endl;
   cout<<"NumFlatBins_          "<<NumFlatBins_<<endl;
   NumFlatBins_ = ntrkbins;
-  cout<<"  reset to            "<<NumFlatBins_<<endl;
+  cout<<"  reset to ntrkbins:  "<<NumFlatBins_<<endl;
   cout<<"CentBinCompression_   "<<CentBinCompression_<<endl;
   cout<<"==============================================="<<endl;
   tf->Close();
@@ -291,11 +309,49 @@ void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
       ptcnt_[i][j]=0;
     }
   }
+  int mx = ntrkbins;
+  if(!useNtrk) {
+    mx = 0;
+    cout<<"need to set this up"<<endl;
+    //	mx = nCentBins_;
+  }
+  bool first = true;
   for(int findx = 0; findx< lcnt; findx++) {
     tf = new TFile(fnames[findx].Data(),"read");
     if(tf->IsZombie())                 {cout<<"ZOMBIE:    " <<fnames[findx].Data()<<endl; continue;}
     if(tf->TestBit(TFile::kRecovered)) {cout<<"RECOVERED: " <<fnames[findx].Data()<<endl; continue;}
-    
+    if(first&&mx>0) {
+      for(int i = 0; i<mx; i++) {
+	string name = "evtPlaneCalibTree/"+to_string(trkBins[i])+"_"+to_string(trkBins[i+1]);
+ 	string qcntname = name + "/wqcnt_"+to_string(i);
+	cout<<fnames[findx].Data()<<"  == "<<qcntname<<endl;
+	wqcnt[i] =(TH2D *)  tf->Get(qcntname.data())->Clone(Form("wqcnt_%d",i));
+	wqcnt[i]->SetDirectory(0);
+	for(int j = 1; j<=7; j++){
+	  string qxname = name + "/wqxtrk"+to_string(j)+"_"+to_string(i);
+	  string qyname = name + "/wqytrk"+to_string(j)+"_"+to_string(i);
+	  wqxtrk[j-1][i] =(TH2D *)  tf->Get(qxname.data())->Clone(Form("wqxtrk_%d_%d",j,i));
+	  wqxtrk[j-1][i]->SetDirectory(0);
+	  wqytrk[j-1][i] =(TH2D *)  tf->Get(qyname.data())->Clone(Form("wqytrk_%d_%d",j,i));
+	  wqytrk[j-1][i]->SetDirectory(0);
+	  
+	}
+      }
+      first = false;
+    } else {
+      for(int i = 0; i<mx; i++) {
+	string name = "evtPlaneCalibTree/"+to_string(trkBins[i])+"_"+to_string(trkBins[i+1]);
+	string qcntname = name + "/wqcnt_"+to_string(i);
+	wqcnt[i]->Add((TH2D *)  tf->Get(qcntname.data()));
+	for(int j = 1; j<=7; j++){
+	  string qxname = name + "/wqxtrk"+to_string(j)+"_"+to_string(i);
+	  string qyname = name + "/wqytrk"+to_string(j)+"_"+to_string(i);
+	  wqxtrk[j-1][i]->Add((TH2D *)  tf->Get(qxname.data()));
+	  wqytrk[j-1][i]->Add((TH2D *)  tf->Get(qyname.data())); 
+	}
+      }
+    }
+
     tree = (TTree *) tf->Get("evtPlaneCalibTree/tree");
     tree->SetBranchAddress("Cent",    &centval);
     tree->SetBranchAddress("Vtx",     &vtx);
@@ -328,6 +384,11 @@ void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
     }
     tf->Close();
   }
+  if(totentries==0) {
+    cout<<"There are no events that satisfy cuts. Exit."<<endl;
+    return ;
+  }
+
   //
   // Loop 1
   //
@@ -442,4 +503,16 @@ void EPCalib(unsigned int minRun=0, unsigned int maxRun=500000){
 
   tfout->Close(); 
   rescor();  
+  string foffname = "foff_"+tag+".root";
+  TFile * foff = new TFile(foffname.data(),"recreate");
+  foff->cd();
+  for(int i = 0; i<mx; i++) {
+    for(int j = 1; j<=7; j++){
+      wqxtrk[j-1][i]->Divide(wqcnt[i]);
+      wqytrk[j-1][i]->Divide(wqcnt[i]);
+      wqxtrk[j-1][i]->Write();
+      wqytrk[j-1][i]->Write();
+    }
+  }
+
 }
