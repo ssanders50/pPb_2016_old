@@ -12,7 +12,7 @@ static const int ncentbins = 25;
 static const int centBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 static const double centRefBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 static const int cbins = 25;
-static const int cmin[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420};
+static const int cmin[]={1, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420};
 static const int cmax[]={10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 
 
@@ -1408,7 +1408,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   text->SetTextFont(43);
   text->SetTextSize(28);
   text->Draw();
-  TLatex * t2 = new TLatex(1,0.77*ymax,Form("%d - %d%c",cmin[bin],cmax[bin],'%'));
+  TLatex * t2 = new TLatex(1,0.77*ymax,Form("%d #leq N_{tkr}^{off} < %d",cmin[bin],cmax[bin]));
   t2->SetTextFont(43);
   t2->SetTextSize(22);
   t2->Draw();
