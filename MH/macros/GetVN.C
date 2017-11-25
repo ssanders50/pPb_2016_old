@@ -7,12 +7,21 @@
 #include "TGraphErrors.h"
 #include "TMath.h"
 #include <iostream>
-static const int ncentbins = 11;
-static const int centBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
-static const double centRefBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
-static const int cbins = 14;
-static const int cmin[]={0, 5,10,15,20,25,30,35,40,50,60,  0,20, 60};
-static const int cmax[]={5,10,15,20,25,30,35,40,50,60,70, 20,60,100};
+
+static const int ncentbins = 25;
+static const int centBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+static const double centRefBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+static const int cbins = 25;
+static const int cmin[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420};
+static const int cmax[]={10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+
+
+// static const int ncentbins = 11;
+// static const int centBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
+// static const double centRefBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
+// static const int cbins = 14;
+// static const int cmin[]={0, 5,10,15,20,25,30,35,40,50,60,  0,20, 60};
+// static const int cmax[]={5,10,15,20,25,30,35,40,50,60,70, 20,60,100};
 double EtaMin = -0.8;
 double EtaMax = 0.8;
 string FigDir = "";
@@ -121,6 +130,8 @@ double FakeAndEff(int cent, double pt, double &eff) {
   double cbe[6]={0,5,10,30,50,100};
   TFile * f=0;
   TFile * e=0;
+  eff = 1.;
+  return 0.;
   if(isNominal) {
     f = new TFile("EffAndFake/FakeRatesPixelPbPb_nominal.root");
     e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_nominal.root");
@@ -172,46 +183,51 @@ double FakeAndEff(int cent, double pt, double &eff) {
 TH2D * ptcntEff(TH2D * ptcnt, double cent) {
   double cbe[6]={0,5,10,30,50,100};
   TFile * e=0;
-  if(isNominal) {
-    e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_nominal.root");
-  }
-  if(isWide) { 
-    e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_wide.root");
-  }
-  if(isNarrow) {
-    e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_narrow.root");
-  }
-  if(isLoose){ 
-    e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_loose.root");
-  }
-  if(isTight){ 
-    cout<<"use tight cut efficiency"<<endl;
-    e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_tight.root");
+  bool skipeff = true;
+  if(!skipeff) {
+    if(isNominal) {
+      e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_nominal.root");
+    }
+    if(isWide) { 
+      e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_wide.root");
+    }
+    if(isNarrow) {
+      e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_narrow.root");
+    }
+    if(isLoose){ 
+      e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_loose.root");
+    }
+    if(isTight){ 
+      cout<<"use tight cut efficiency"<<endl;
+      e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_tight.root");
+    }
   }
   TH1I * cene = new TH1I("cene","cene",5,cbe);
   int ibe = cene->FindBin(cent)-1;
   string re = "Eff_"+to_string((int)cbe[ibe])+"_"+to_string((int)cbe[ibe+1]);
-  TH2D * he = (TH2D *) e->Get(re.data());
+  TH2D * he=NULL;
+  if(!skipeff)  he = (TH2D *) e->Get(re.data());
   TH2D * hsEff = (TH2D *) ptcnt->Clone("ptcntEff");
   hsEff->Reset();
   hsEff->SetDirectory(0);
-  bool skipeff = false;
   if(AnalNames[ANAL]==AnalNames[N2EFF] || AnalNames[ANAL]==AnalNames[N723EFF] || AnalNames[ANAL]==AnalNames[D2432EFF]
      || AnalNames[ANAL]==AnalNames[CHI7EFF] || AnalNames[ANAL]==AnalNames[N42EFF]) skipeff=true;
   for(int i = 1; i<=ptcnt->GetNbinsX(); i++) {
     for(int j = 1; j<=ptcnt->GetNbinsY(); j++) {
       double pt = ptcnt->GetXaxis()->GetBinCenter(i);
       double eta = ptcnt->GetYaxis()->GetBinCenter(j);
-      int ptbin = he->GetYaxis()->FindBin(pt);
-      int etabin = he->GetXaxis()->FindBin(eta);
-      double eff =  he->GetBinContent(etabin,ptbin);
-     
+      double eff = 1.;
+      if(!skipeff) {
+	int ptbin = he->GetYaxis()->FindBin(pt);
+	int etabin = he->GetXaxis()->FindBin(eta);
+	double eff =  he->GetBinContent(etabin,ptbin);
+      }
       if(eff<=0 || skipeff) eff = 1;
       hsEff->SetBinContent(i,j,ptcnt->GetBinContent(i,j)/eff);
     }
   }
   cene->Delete();
-  e->Close();
+  if(!skipeff) e->Close();
   return hsEff ;
 }
 string rootFile;
@@ -250,7 +266,6 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
   TH2D * wnB=0;
   int jmin = centRef->FindBin(cmin[bin])-1;
   int jmax = centRef->FindBin(cmax[bin]-0.01)-1;
-  cout<<"jmin,jmax: "<<jmin<<"\t"<<jmax<<endl;
   ANAL = replay;
   string strip = AnalNames[replay];
   bool sub2 = false;
@@ -278,13 +293,13 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
   double centcnt = 0;
   for(int j = jmin; j<=jmax; j++) {
     string crange = to_string(cmin[j])+"_"+to_string(cmax[j]);
-    cout<<"crange: "<<crange<<endl;
     if(j==jmin) {
+
       ptav = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/ptav",crange.data()));
       ptcnt = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/ptcnt",crange.data()));
       badcnt = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/badcnt",crange.data()));
-      centbins = (TH1D * ) fin->Get("vnanalyzer/centres");
-      centcnt+=centbins->GetBinContent(j);
+      centbins = (TH1D * ) fin->Get("vnanalyzer/centbins");
+      centcnt+=centbins->GetBinContent(j+1);
       qA = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/qA",crange.data(),strip.data()));
       qB = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/qB",crange.data(),strip.data()));
       wnA = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/wnA",crange.data(),strip.data()));
@@ -295,7 +310,6 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
       qCAcnt+=((TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/qCAcnt",crange.data(),strip.data())))->GetBinContent(1); 
       qCB += ((TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/qCB",crange.data(),strip.data())))->GetBinContent(1);
       qCBcnt+=((TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/qCBcnt",crange.data(),strip.data())))->GetBinContent(1);
-      
       for(int i = 0; i<10; i++) {
 	qAe[i] = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/SubEvents/qA_%d",crange.data(),strip.data(),i+1));
 	qBe[i] = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/%s/SubEvents/qB_%d",crange.data(),strip.data(),i+1));
@@ -690,7 +704,7 @@ TH1D * h = 0;
 void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool DenomOnly=false ){
   TH1D * hspec = 0;
   FILE * ftest;
-  if(isTight) {
+  if(true) {
     if((ftest = fopen(Form("%s/%s",FigDir.data(),AnalNames[replay].data()),"r"))==NULL) {
       system(Form("mkdir %s/%s",FigDir.data(),AnalNames[replay].data()));
     } else {
@@ -742,7 +756,6 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   double resB[cbins];
   double resAdenom[cbins];
   double resBdenom[cbins];
-  cout<<"In create"<<endl;
   if(replay==N112ASUB2||replay==N112ASUB3) {
     hdenom = GetVNPt(N2SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom, vintdenom,vintedenom, false);
     fin->Close();
@@ -1061,6 +1074,8 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI63A) {
     hpt = GetVNPt(N63ASUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA, resB,vint,vinte, true);
     fin->Close();
+    cout<<"rootFile: "<<rootFile.data()<<endl;
+
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D34ASUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1310,47 +1325,46 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   leg->AddEntry(hpt,AnalNames[replay].data(),"lp");
   leg->AddEntry(hA,"HF+ only","lp");
   leg->AddEntry(hB,"HF- only","lp");
-  cout<<"leg formed"<<endl;
-  if(prevname.length()>1 && bin<11) { 
-    double x[40];
-    double y[40];
-    double stat[40];
-    double sys[40];
-    FILE * fin = fopen(prevname.data(),"r");
-    char buf[80];
-    int n = 0;
-    while(fgets(buf,80,fin)!=NULL) {
-      sscanf(buf,"%lf\t%lf\t%lf\t%lf",&x[n],&y[n],&stat[n],&sys[n]);
-      ++n;
-    }
-    TGraphErrors * gold = new TGraphErrors(n,x,y,0,stat);
-    gold->SetMarkerStyle(25);
-    gold->SetMarkerColor(kRed);
-    gold->SetLineColor(kRed);
-    gold->Draw("p");
-    leg->AddEntry(gold,"CMS Published","lp");
-  }
+  // if(prevname.length()>1 && bin<11) { 
+  //   double x[40];
+  //   double y[40];
+  //   double stat[40];
+  //   double sys[40];
+  //   FILE * fin = fopen(prevname.data(),"r");
+  //   char buf[80];
+  //   int n = 0;
+  //   while(fgets(buf,80,fin)!=NULL) {
+  //     sscanf(buf,"%lf\t%lf\t%lf\t%lf",&x[n],&y[n],&stat[n],&sys[n]);
+  //     ++n;
+  //   }
+  //   TGraphErrors * gold = new TGraphErrors(n,x,y,0,stat);
+  //   gold->SetMarkerStyle(25);
+  //   gold->SetMarkerColor(kRed);
+  //   gold->SetLineColor(kRed);
+  //   gold->Draw("p");
+  //   leg->AddEntry(gold,"CMS Published","lp");
+  // }
 
-  if(shengquan.length()>1&&bin<11) { 
-    double x[40];
-    double y[40];
-    double stat[40];
-    double sys[40];
-    FILE * fin = fopen(shengquan.data(),"r");
-    char buf[80];
-    int n = 0;
-    while(fgets(buf,80,fin)!=NULL) {
-      sscanf(buf,"%lf\t%lf\t%lf",&x[n],&y[n],&stat[n]);
-      x[n]+=0.05;
-      ++n;
-    }
-    TGraphErrors * sheng = new TGraphErrors(n,x,y,0,stat);
-    sheng->SetMarkerStyle(24);
-    sheng->SetMarkerColor(kGreen);
-    sheng->SetLineColor(kGreen);
-    sheng->Draw("p");
-    leg->AddEntry(sheng,"Shengquan (offset)","lp");
-  }
+  // if(shengquan.length()>1&&bin<11) { 
+  //   double x[40];
+  //   double y[40];
+  //   double stat[40];
+  //   double sys[40];
+  //   FILE * fin = fopen(shengquan.data(),"r");
+  //   char buf[80];
+  //   int n = 0;
+  //   while(fgets(buf,80,fin)!=NULL) {
+  //     sscanf(buf,"%lf\t%lf\t%lf",&x[n],&y[n],&stat[n]);
+  //     x[n]+=0.05;
+  //     ++n;
+  //   }
+  //   TGraphErrors * sheng = new TGraphErrors(n,x,y,0,stat);
+  //   sheng->SetMarkerStyle(24);
+  //   sheng->SetMarkerColor(kGreen);
+  //   sheng->SetLineColor(kGreen);
+  //   sheng->Draw("p");
+  //   leg->AddEntry(sheng,"Shengquan (offset)","lp");
+  // }
   if(replay==N523SUB3) {
     TGraphErrors * hpt2 = GetVNPt(N523SUB3, bin,EtaMin,EtaMax, hA, hB,nwspec,resA, resB,vint,vinte);
     hpt2->SetMarkerColor(kGreen);
@@ -1422,7 +1436,6 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
     hspec->SetDirectory(0);
     hspec->SetMaximum(100*pow(10.,(double)((int) TMath::Log10(ymaxspec))));
     hspec->SetMinimum(0.00001);
-    cout<<"c2: "<<c2<<endl;
     c2->cd();
     gPad->SetLogy();
     hspec->Draw();
@@ -1460,36 +1473,22 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
 
 }
 
-void GetVN(string name="N523ASUB3", string tag="useTight", double mineta = -0.8, double maxeta = 0.8, bool override = false){
+void GetVN(string rootfile = "../pPb_MB_0.root", string name="N2SUB3", string tag="", double mineta = -0.8, double maxeta = 0.8, bool override = true){
   bool found = false;
-  centRef = new TH1I("centRef","centRef",11,centRefBins);
+  rootFile = rootfile;
+  centRef = new TH1I("centRef","centRef",ncentbins,centRefBins);
   EtaMin = mineta;
   EtaMax = maxeta;
   stag = "_"+tag;
-  rootFile = "";
-  if(tag=="useTight" || tag=="noRecenter" || tag=="noRecenter_reweight") {
-    if(tag=="useTight") stag = "";
-    isTight   = true;
-    isNominal = false;
-    isWide    = false;
-    isNarrow  = false;
-    isLoose   = false;
-    if(tag=="useTight") {
-      rootFile = "../MH.root";
-      fin = new TFile("../MH.root","read");
-    }else {
-      rootFile = "../MH_noRecenter.root";
-      fin = new TFile("../MH_noRecenter.root","read");
-      if(tag=="noRecenter_reweight") rew=true;
-    }
-  }
-  if(tag=="useNominal") {
-    isTight   = false;
-    isNominal = true;
-    isWide    = false;
-    isNarrow  = false;
-    isLoose   = false;
-  }
+  if(tag=="") stag = "";
+  isTight   = false;
+  isNominal = true;
+  isWide    = false;
+  isNarrow  = false;
+  isLoose   = false;
+
+  fin = new TFile(rootfile.data(),"read");
+ 
   int en = 0;
   for(int indx = 0; indx<LAST; ++indx){
     if(AnalNames[indx]==name) {
@@ -1523,6 +1522,7 @@ void GetVN(string name="N523ASUB3", string tag="useTight", double mineta = -0.8,
   }
 
   for(int bin = 0; bin<13; bin++) {
+    //if(bin!=10) continue;
    GetVNCreate(en,bin);
     fin->Close();
     fin = new TFile(rootFile.data(),"read");
