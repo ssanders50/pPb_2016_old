@@ -73,13 +73,13 @@ static const int MaxTracks = 50;
 
 static const int netabinsDefault = 12;
 static const float etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
-static const int nanals = 43;
+static const int nanals = 42;
 enum AnalType {
   N1MCm22, N1MCm18, N1MCm14, N1MCm10, N1MCm06,
   N1MCm02, N1MCp22, N1MCp18, N1MCp14, N1MCp10,
   N1MCp06, N1MCp02,   N112A,   N123A,      N1, 
        N2,      N3,      N4,      N5,      N6,    
-       N7,     N42,    N42A,    N42B,    N42C,
+       N7,     N42,    N42A,    N42B,   
      N523,   N523A,     N63,    N63A,     N62,    
      N62A,    N723,   N723A,     D24,    D24A,     
       D26,    D26A,     D34,    D34A,   D2232,  
@@ -90,7 +90,7 @@ string AnalNames[]={
   "N1MCm02", "N1MCp22", "N1MCp18", "N1MCp14","N1MCp10",
   "N1MCp06", "N1MCp02",   "N112A",   "N123A",     "N1", 
        "N2",      "N3",      "N4",      "N5",     "N6",   
-       "N7",     "N42",    "N42A",    "N42B",   "N42C",
+       "N7",     "N42",    "N42A",    "N42B",  
      "N523",   "N523A",     "N63",    "N63A",    "N62",  
      "N62A",    "N723",   "N723A",     "D24",   "D24A",   
       "D26",    "D26A",     "D34",    "D34A",  "D2232",
