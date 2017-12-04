@@ -73,13 +73,13 @@ static const int MaxTracks = 50;
 
 static const int netabinsDefault = 12;
 static const float etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
-static const int nanals = 42;
+static const int nanals = 44;
 enum AnalType {
   N1MCm22, N1MCm18, N1MCm14, N1MCm10, N1MCm06,
   N1MCm02, N1MCp22, N1MCp18, N1MCp14, N1MCp10,
-  N1MCp06, N1MCp02,   N112A,   N123A,      N1, 
+  N1MCp06, N1MCp02,   N112A,   N123A,      N1A, N1B, 
        N2,      N3,      N4,      N5,      N6,    
-       N7,     N42,    N42A,    N42B,   
+      N7,     N42,    N42A,    N42B,     N42C,
      N523,   N523A,     N63,    N63A,     N62,    
      N62A,    N723,   N723A,     D24,    D24A,     
       D26,    D26A,     D34,    D34A,   D2232,  
@@ -88,9 +88,9 @@ enum AnalType {
 string AnalNames[]={
   "N1MCm22", "N1MCm18", "N1MCm14", "N1MCm10","N1MCm06",
   "N1MCm02", "N1MCp22", "N1MCp18", "N1MCp14","N1MCp10",
-  "N1MCp06", "N1MCp02",   "N112A",   "N123A",     "N1", 
+  "N1MCp06", "N1MCp02",   "N112A",   "N123A",     "N1A", "N1B",
        "N2",      "N3",      "N4",      "N5",     "N6",   
-       "N7",     "N42",    "N42A",    "N42B",  
+        "N7",     "N42",    "N42A",    "N42B",  "N42C",
      "N523",   "N523A",     "N63",    "N63A",    "N62",  
      "N62A",    "N723",   "N723A",     "D24",   "D24A",   
       "D26",    "D26A",     "D34",    "D34A",  "D2232",
@@ -1127,7 +1127,8 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     if(ian==N112A) Fill_N112A(N112A, ibin, qxtrk1, qytrk1, qcnt, qx, qy, sumw);
     if(ian==N123A) Fill_N123A(N123A, ibin, qxtrk1, qytrk1, qcnt, qx, qy, sumw);
-    if(ian==N1) Fill_N( N1,  ibin, qxtrk1, qytrk1, qcnt, qx[HFp1], qy[HFp1], qx[HFm1], qy[HFm1], qx[trackp114], qy[trackp114], sumw[HFp1], sumw[HFm1], sumw[trackp114]);
+    if(ian==N1A) Fill_N( N1A,  ibin, qxtrk1, qytrk1, qcnt, qx[HFp1], qy[HFp1], qx[HFm1], qy[HFm1], qx[trackp114], qy[trackp114], sumw[HFp1], sumw[HFm1], sumw[trackp114]);
+    if(ian==N1B) Fill_N( N1B,  ibin, qxtrk1, qytrk1, qcnt, qx[HFm1], qy[HFm1], qx[HFp1], qy[HFp1], qx[trackm114], qy[trackm114], sumw[HFm1], sumw[HFp1], sumw[trackm114]);
     if(ian==N2) Fill_N( N2,  ibin, qxtrk2, qytrk2, qcnt, qx[HFp2], qy[HFp2], qx[HFm2], qy[HFm2], qx[trackmid2], qy[trackmid2], sumw[HFp2], sumw[HFm2], sumw[trackmid2]);
     if(ian==N3) Fill_N( N3,  ibin, qxtrk3, qytrk3, qcnt, qx[HFp3], qy[HFp3], qx[HFm3], qy[HFm3], qx[trackmid3], qy[trackmid3], sumw[HFp3], sumw[HFm3], sumw[trackmid3]);
     if(ian==N4) Fill_N( N4,  ibin, qxtrk4, qytrk4, qcnt, qx[HFp4], qy[HFp4], qx[HFm4], qy[HFm4], qx[trackmid4], qy[trackmid4], sumw[HFp4], sumw[HFm4], sumw[trackmid4]);
@@ -1137,6 +1138,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     if(ian==N42)  Fill_N42(N42, ibin, qxtrk4, qytrk4, qcnt, qx, qy, sumw);
     if(ian==N42A)  Fill_N42A(N42A, ibin, qxtrk4, qytrk4, qcnt, qx, qy, sumw);
     if(ian==N42B)  Fill_N42B(N42B, ibin, qxtrk4, qytrk4, qcnt, qx, qy, sumw);
+    if(ian==N42C)  Fill_N42C(N42C, ibin, qxtrk4, qytrk4, qcnt, qx, qy, sumw);
     if(ian==N523)  Fill_N523(  N523, ibin, qxtrk5, qytrk5, qcnt, qx, qy, sumw);
     if(ian==N523A) Fill_N523A(N523A, ibin, qxtrk5, qytrk5, qcnt, qx, qy, sumw);
     if(ian==N63)   Fill_N63(N63, ibin, qxtrk6, qytrk6, qcnt, qx, qy, sumw);
