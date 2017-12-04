@@ -7,21 +7,24 @@
 #include "TGraphErrors.h"
 #include "TMath.h"
 #include <iostream>
+#define NOFF
 
+#ifdef NOFF
 static const int ncentbins = 25;
 static const int centBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 static const double centRefBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
 static const int cbins = 25;
 static const int cmin[]={1, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420};
 static const int cmax[]={10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+#else
+static const int ncentbins = 11;
+static const int centBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
+static const double centRefBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
+static const int cbins = 12;
+static const int cmin[]={0, 5,10,15,20,25,30,35,40,50,60,  0,20, 60};
+static const int cmax[]={5,10,15,20,25,30,35,40,50,60,70, 20,60,100};
+#endif
 
-
-// static const int ncentbins = 11;
-// static const int centBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
-// static const double centRefBins[]={0,5,10,15,20,25,30,35,40,50,60,70};
-// static const int cbins = 14;
-// static const int cmin[]={0, 5,10,15,20,25,30,35,40,50,60,  0,20, 60};
-// static const int cmax[]={5,10,15,20,25,30,35,40,50,60,70, 20,60,100};
 double EtaMin = -0.8;
 double EtaMax = 0.8;
 string FigDir = "";
@@ -34,7 +37,8 @@ enum AnalType {
       N112ASUB2,         N112ASUB3,          N123ASUB2,        N123ASUB3,            
          N2SUB2,            N2SUB3,             N3SUB2,           N3SUB3,     
          N4SUB2,            N4SUB3,            N42SUB2,          N42SUB3,          
-       N42ASUB2,          N42ASUB3,             N5SUB2,           N5SUB3,             
+       N42ASUB2,          N42ASUB3,           N42BSUB2,         N42BSUB3,            
+         N5SUB2,           N5SUB3,             
          N6SUB2,            N6SUB3,             N7SUB2,           N7SUB3,          
        N523SUB2,          N523SUB3,          N523ASUB2,        N523ASUB3,
        N723SUB2,          N723SUB3,          N723ASUB2,        N723ASUB3,   
@@ -61,7 +65,8 @@ string AnalNames[]={
     "N112ASUB2",       "N112ASUB3",        "N123ASUB2",      "N123ASUB3",          
        "N2SUB2",          "N2SUB3",           "N3SUB2",         "N3SUB3", 
        "N4SUB2",          "N4SUB3",          "N42SUB2",        "N42SUB3",        
-     "N42ASUB2",        "N42ASUB3",           "N5SUB2",         "N5SUB3",          
+     "N42ASUB2",        "N42ASUB3",         "N42BSUB2",        "N42BSUB3",
+       "N5SUB2",          "N5SUB3",          
        "N6SUB2",          "N6SUB3",           "N7SUB2",         "N7SUB3",      
      "N523SUB2",        "N523SUB3",        "N523ASUB2",      "N523ASUB3",      
      "N723SUB2",        "N723SUB3",        "N723ASUB2",      "N723ASUB3",       
@@ -88,7 +93,8 @@ string ytitle[]={
      "v_{1}\{#Psi{1},#Psi{2}\}",     "v_{1}\{#Psi{1},#Psi{2}\}",        "v_{1}\{#Psi{2},#Psi{3}\}",         "v_{1}\{#Psi{2},#Psi{3}\}",                        
                         "v_{2}",                        "v_{2}",                           "v_{3}",                            "v_{3}",   
                         "v_{4}",                        "v_{4}",               "v_{4}\{#Psi_{2}\}",                "v_{4}\{#Psi_{2}\}", 
- "v_{4}\{#Psi_{2A},#Psi_{2B}\}", "v_{4}\{#Psi_{2A},#Psi_{2B}\}",                           "v_{5}",                            "v_{5}",                       
+ "v_{4}\{#Psi_{2A},#Psi_{2B}\}", "v_{4}\{#Psi_{2A},#Psi_{2B}\}",    "v_{4}\{#Psi_{2A},#Psi_{2B}\}", "v_{4}\{#Psi_{2A},#Psi_{2B}\}",                          
+                        "v_{5}",                            "v_{5}",                       
                         "v_{6}",                        "v_{6}",                           "v_{7}",                            "v_{7}",       
     "v_{5}\{#Psi_{2},#Psi_{3}\}",  "v_{5}\{#Psi_{2},#Psi_{3}\}",    "v_{5}\{#Psi_{2A},#Psi_{3B}\}",     "v_{5}\{#Psi_{2A},#Psi_{3B}\}",    
     "v_{7}\{#Psi_{2},#Psi_{3}\}",    "v_{7}\{#Psi_{2},#Psi_{3}\}",  "v_{7}\{#Psi_{2A},#Psi_{3B}\}",     "v_{7}\{#Psi_{2A},#Psi_{3B}\}",          
@@ -131,7 +137,9 @@ double FakeAndEff(int cent, double pt, double &eff) {
   TFile * f=0;
   TFile * e=0;
   eff = 1.;
-  return 0.;
+#ifdef NOFF
+  return eff;
+#endif
   if(isNominal) {
     f = new TFile("EffAndFake/FakeRatesPixelPbPb_nominal.root");
     e = new TFile("EffAndFake/EffCorrectionsPixelPbPb_nominal.root");
@@ -161,8 +169,8 @@ double FakeAndEff(int cent, double pt, double &eff) {
   string re = "Eff_"+to_string((int)cbe[ibe])+"_"+to_string((int)cbe[ibe+1]);
   TH2D * he = (TH2D *) e->Get(re.data());
   int ptbin = hf->GetYaxis()->FindBin(pt);
-  int etabinmin = hf->GetXaxis()->FindBin(-0.8);
-  int etabinmax = hf->GetXaxis()->FindBin(0.79);
+  int etabinmin = hf->GetXaxis()->FindBin(EtaMin);
+  int etabinmax = hf->GetXaxis()->FindBin(EtaMax-0.01);
   double val = 0;
   eff = 0;
   for(int i = etabinmin; i<=etabinmax; i++) {
@@ -264,6 +272,7 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
   TH2D * qB=0;
   TH2D * wnA=0;
   TH2D * wnB=0;
+  cout<<"bin,cmin,cmax: "<<bin<<"\t"<<cmin[bin]<<"\t"<<cmax[bin]<<endl;
   int jmin = centRef->FindBin(cmin[bin])-1;
   int jmax = centRef->FindBin(cmax[bin]-0.01)-1;
   ANAL = replay;
@@ -293,6 +302,8 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
   double centcnt = 0;
   for(int j = jmin; j<=jmax; j++) {
     string crange = to_string(cmin[j])+"_"+to_string(cmax[j]);
+    if(cmin[j]==1) crange = "0_"+to_string(cmax[j]);
+    cout<<crange<<endl;
     if(j==jmin) {
 
       ptav = (TH2D *) fin->Get(Form("vnanalyzer/Harmonics/%s/ptav",crange.data()));
@@ -353,6 +364,11 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
       }
     }
   }
+
+  if(centcnt<50000) {
+    cout<<"centcnt: "<<centcnt<<endl;
+    return NULL;
+  }
   qBA/=qBAcnt;
   qCA/=qCAcnt;
   qCB/=qCBcnt;
@@ -403,9 +419,14 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
       resB[0]= sqrt(qBA);
     } else {
       qA->Scale(1./sqrt(qBA*qCA/qCB));
-      qB->Scale(1./sqrt(qBA*qCB/qCA));
       qA1->Scale(1./sqrt(qBA*qCA/qCB));
-      qB1->Scale(1./sqrt(qBA*qCB/qCA));
+      if(replay==N42BSUB3) {
+	qB->Scale(1./sqrt(qBA*qCA/qCB));
+	qB1->Scale(1./sqrt(qBA*qCA/qCB));
+      } else {
+	qB->Scale(1./sqrt(qBA*qCB/qCA));
+	qB1->Scale(1./sqrt(qBA*qCB/qCA));
+      }
       resA[0]= sqrt(qBA*qCA/qCB);
       resB[0]= sqrt(qBA*qCB/qCA);
     }
@@ -431,10 +452,17 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
 	resA[i+1]= sqrt(qBAe[i]);
 	resB[i+1]= sqrt(qBAe[i]);
       } else {
-	qAe[i]->Scale(1./sqrt(qBAe[i]*qCAe[i]/qCBe[i]));
-	qBe[i]->Scale(1./sqrt(qBAe[i]*qCBe[i]/qCAe[i]));
-	resA[i+1]= sqrt(qBAe[i]*qCAe[i]/qCBe[i]);
-	resB[i+1]= sqrt(qBAe[i]*qCBe[i]/qCAe[i]);
+	if(replay==N42BSUB3) {
+	  qAe[i]->Scale(1./sqrt(qBA*qCA/qCB));
+	  resA[i+1]= sqrt(qBA*qCA/qCB);
+	  qBe[i]->Scale(1./sqrt(qBA*qCA/qCB));
+	  resB[i+1]= sqrt(qBA*qCA/qCB);
+	} else {
+	  qAe[i]->Scale(1./sqrt(qBAe[i]*qCAe[i]/qCBe[i]));
+	  resA[i+1]= sqrt(qBAe[i]*qCAe[i]/qCBe[i]);
+	  qBe[i]->Scale(1./sqrt(qBAe[i]*qCBe[i]/qCAe[i]));
+	  resB[i+1]= sqrt(qBAe[i]*qCBe[i]/qCAe[i]);
+	}
       }
     }
   }
@@ -507,6 +535,7 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
 	vn2[j] += pow(vne->GetBinContent(j+1),2);
 	vnA2[j]+= pow(vnAe->GetBinContent(j+1),2);
 	vnB2[j]+= pow(vnBe->GetBinContent(j+1),2);
+	if(j==5) cout<<vne->GetBinCenter(j+1)<<"\t"<<vne->GetBinContent(j+1)<<"\t"<<vn->GetBinContent(j+1)<<endl;
       }
     }
     for(int j = 0; j<vn->GetNbinsX(); j++) {
@@ -588,6 +617,7 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
 	vn2[j] += pow(vne->GetBinContent(j+1),2);
 	vnA2[j]+= pow(vnAe->GetBinContent(j+1),2);
 	vnB2[j]+= pow(vnBe->GetBinContent(j+1),2);
+	if(j==5) cout<<vne->GetBinCenter(j+1)<<"\t"<<vne->GetBinContent(j+1)<<endl;
       }
     }
     for(int j = 0; j<vn->GetNbinsX(); j++) {
@@ -734,7 +764,6 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   if(replay==CHI7EFF) chi7eff = true;
   bool chi7noeff = false;
   if(replay==CHI7NOEFF) chi7noeff = true;
-  TCanvas * c = new TCanvas(cname.data(),cname.data(),650,500);
   
   h = new TH1D("h","h",100,0,12.);
   h->SetDirectory(0);
@@ -759,8 +788,10 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   if(replay==N112ASUB2||replay==N112ASUB3) {
     hdenom = GetVNPt(N2SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom, vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N112ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, false);
+    if(hpt==NULL) return;
     double res = (resAdenom[0]+resBdenom[0])/2.;
       for(int i = 0; i<hpt->GetN(); i++) {
          double ef = hpt->GetEY()[i]/hpt->GetY()[i];
@@ -779,8 +810,10 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==N123ASUB2||replay==N123ASUB3){
     hdenom = GetVNPt(N3SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N123ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, false);
+    if(hpt==NULL) return;
     double res = (resAdenom[0]+resBdenom[0])/2.;
     for(int i = 0; i<hpt->GetN(); i++) {
        double ef = hpt->GetEY()[i]/hpt->GetY()[i];
@@ -797,8 +830,11 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
      }
     
   } else if (replay==N42ASUB2||replay==N42ASUB3){
+    cout<<"cneter"<<endl;
     hdenom = GetVNPt(N42SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
+    cout<<"hdenom: "<<hdenom<<endl;
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N42ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -818,6 +854,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==D24ASUB2||replay==D24ASUB3){
     hdenom = GetVNPt(D24SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(D24ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -838,6 +875,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==N62ASUB2||replay==N62ASUB3){
     hdenom = GetVNPt(N62SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N62ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -857,6 +895,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==D26ASUB2||replay==D26ASUB3){
     hdenom = GetVNPt(D26SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(D26ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -876,6 +915,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==N63ASUB3||replay==N63ASUB3){
     hdenom = GetVNPt(N63SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N63ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -895,6 +935,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if (replay==D34ASUB2||replay==D34ASUB3){
     hdenom = GetVNPt(D34SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom,vintdenom,vintedenom, false);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(D34ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec, resA, resB, vint,vinte, true);
     double res = (resAdenom[0]+resBdenom[0])/2.;
@@ -916,6 +957,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi4) {
     hdenom = GetVNPt(D24SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom, resBdenom, vintdenom,vintedenom, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N42SUB3, bin, EtaMin,EtaMax, hA, hB, nwspec,resA,resB,  vint,vinte, true);
     vint/=vintdenom;
@@ -938,6 +980,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI4A) {
     hdenom = GetVNPt(D24ASUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom, resBdenom, vintdenom,vintedenom, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt    = GetVNPt(N42ASUB3, bin, EtaMin,EtaMax, hA, hB, nwspec,resA,resB,  vint,vinte, true);
     vint/=vintdenom;
@@ -960,6 +1003,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi5) {
     hdenom = GetVNPt(D2232SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom, nwspec2, resAdenom, resBdenom,vintdenom,vintedenom, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt = GetVNPt(N523SUB3, bin, EtaMin,EtaMax, hA, hB,nwspec,resA,resB, vint,vinte, true);
     vint/=vintdenom;
@@ -987,6 +1031,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI5A) {
     hdenom = GetVNPt(D2232ASUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom, nwspec2, resAdenom, resBdenom,vintdenom,vintedenom, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hpt = GetVNPt(N523ASUB3, bin, EtaMin,EtaMax, hA, hB,nwspec,resA,resB, vint,vinte, true);
     vint/=vintdenom;
@@ -1014,6 +1059,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi62) {
     hpt = GetVNPt(N62SUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA,resB, vint,vinte, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D26SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2,resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1034,6 +1080,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI62A) {
     hpt = GetVNPt(N62ASUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA,resB, vint,vinte, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D26ASUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2,resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1054,6 +1101,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi63) {
     hpt = GetVNPt(N63SUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA, resB,vint,vinte, true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D34SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2, resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1074,6 +1122,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI63A) {
     hpt = GetVNPt(N63ASUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA, resB,vint,vinte, true);
     fin->Close();
+    if(hdenom==NULL) return;
     cout<<"rootFile: "<<rootFile.data()<<endl;
 
     fin = new TFile(rootFile.data(),"r");
@@ -1096,6 +1145,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi7) {
     hpt = GetVNPt(N723SUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA,resB, vint,vinte,true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D2432SUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2,resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1116,6 +1166,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(replay==CHI7A) {
     hpt = GetVNPt(N723ASUB3, bin, EtaMin,EtaMax, hA, hB,nwspec, resA,resB, vint,vinte,true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D2432ASUB3, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2,resAdenom,resBdenom, vintdenom,vintedenom, true);
     vint/=vintdenom;
@@ -1136,6 +1187,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi7eff) {
     hpt = GetVNPt(N723EFF, bin, EtaMin,EtaMax, hA, hB, nwspec,resA, resB, vint,vinte,true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D2432EFF, bin, EtaMin,EtaMax, hAdenom, hBdenom, nwspec2,resAdenom, resBdenom, vintdenom,vintedenom,true);
     vint/=vintdenom;
@@ -1156,6 +1208,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   } else if(chi7noeff) {
     hpt = GetVNPt(N723NOEFF, bin, EtaMin,EtaMax, hA, hB,nwspec,resA, resB, vint,vinte,true);
     fin->Close();
+    if(hdenom==NULL) return;
     fin = new TFile(rootFile.data(),"r");
     hdenom = GetVNPt(D2432NOEFF, bin, EtaMin,EtaMax, hAdenom, hBdenom,nwspec2,resAdenom,resBdenom, vintdenom,vintedenom,true);
     vint/=vintdenom;
@@ -1175,7 +1228,9 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
     }
   } else {
     hpt = GetVNPt(replay, bin,EtaMin,EtaMax, hA, hB,nwspec,resA,resB, vint,vinte);
+    if(hpt==NULL) return;
   }
+  TCanvas * c = new TCanvas(cname.data(),cname.data(),650,500);
   outint = fopen(soutint.data(),"a+");
 
   fprintf(outint,"%d\t%d\t%15.10f\t%15.10f\n",cmin[bin],cmax[bin],vint,vinte);
@@ -1250,7 +1305,8 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
   string numdenom = "";
   if(NumOnly) numdenom=" (Numerator) ";
   if(DenomOnly) numdenom=" (Denominator) ";
-  string yt = ytitle[replay]+numdenom+" ("+to_string(cmin[bin])+" - "+to_string(cmax[bin])+"%)";
+ 
+  string yt = ytitle[replay]+numdenom+" ("+to_string(cmin[bin])+" #leq N_{trk}^{off} < "+to_string(cmax[bin])+")";
   h->SetYTitle(yt.data());
   hpt->Draw("p");
   string prevname = "";
@@ -1447,7 +1503,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
     t4->SetTextFont(43);
     t4->SetTextSize(28);
     t4->Draw();
-    TLatex * t6 = new TLatex(8,0.02*ym,Form("%d - %d%c",cmin[bin],cmax[bin],'%'));
+    TLatex * t6 = new TLatex(8,0.02*ym,Form("%d #leq N_{trk}^{off} < %d",cmin[bin],cmax[bin]));
     t6->SetTextFont(43);
     t6->SetTextSize(22);
     t6->Draw();
@@ -1473,7 +1529,7 @@ void GetVNCreate(int replay = N42SUB3, int bin = 0, bool NumOnly=false, bool Den
 
 }
 
-void GetVN(string rootfile = "../pPb_MB_0.root", string name="N2SUB3", string tag="", double mineta = -0.8, double maxeta = 0.8, bool override = true){
+void GetVN(string rootfile = "../MH2.root", string name="N2SUB3", string tag="useTight", double mineta = -0.8, double maxeta = 0.8, bool override = true){
   bool found = false;
   rootFile = rootfile;
   centRef = new TH1I("centRef","centRef",ncentbins,centRefBins);
@@ -1521,8 +1577,8 @@ void GetVN(string rootfile = "../pPb_MB_0.root", string name="N2SUB3", string ta
     fclose(ftest);
   }
 
-  for(int bin = 0; bin<13; bin++) {
-    //if(bin!=10) continue;
+  for(int bin = 0; bin<=cbins; bin++) {
+    if(bin!=14) continue;
    GetVNCreate(en,bin);
     fin->Close();
     fin = new TFile(rootFile.data(),"read");
