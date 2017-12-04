@@ -420,15 +420,16 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
     } else {
       qA->Scale(1./sqrt(qBA*qCA/qCB));
       qA1->Scale(1./sqrt(qBA*qCA/qCB));
-      if(replay==N42BSUB3) {
+      resA[0]= sqrt(qBA*qCA/qCB);
+      if(replay==N42BSUB3 || replay==N42ASUB3 || replay==N42ASUB2) {
 	qB->Scale(1./sqrt(qBA*qCA/qCB));
 	qB1->Scale(1./sqrt(qBA*qCA/qCB));
+	resB[0]= sqrt(qBA*qCA/qCB);
       } else {
 	qB->Scale(1./sqrt(qBA*qCB/qCA));
 	qB1->Scale(1./sqrt(qBA*qCB/qCA));
+	resB[0]= sqrt(qBA*qCB/qCA);
       }
-      resA[0]= sqrt(qBA*qCA/qCB);
-      resB[0]= sqrt(qBA*qCB/qCA);
     }
   }
   for(int i = 0; i<10; i++) {
@@ -452,7 +453,7 @@ TGraphErrors * GetVNPt(int replay, int bin, double etamin, double etamax, TGraph
 	resA[i+1]= sqrt(qBAe[i]);
 	resB[i+1]= sqrt(qBAe[i]);
       } else {
-	if(replay==N42BSUB3) {
+	if(replay==N42BSUB3||replay==N42ASUB3||replay==N42ASUB2) {
 	  qAe[i]->Scale(1./sqrt(qBA*qCA/qCB));
 	  resA[i+1]= sqrt(qBA*qCA/qCB);
 	  qBe[i]->Scale(1./sqrt(qBA*qCA/qCB));
