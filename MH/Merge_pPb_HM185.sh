@@ -1,13 +1,13 @@
 #!/bin/sh
-#ls -1 /rfs/sanders/crab_projects/crab_pPb2016_pPb_HM185_1/vnanal* > pPb_HM185_1_list.dat
-#root -l -b -q 'MergeFiles.C+("pPb_HM185_1_list.dat","pPb_HM185_1_",10)'
-#rm pPb_HM185_1_list.dat
-#ls -1 pPb_HM185_1_*.root > pPb_HM185_1_list.dat
-#root -l -b -q 'MergeFiles.C+("pPb_HM185_1_list.dat","pPb_HM185_1A_",10)'
-#hadd -f pPb_HM185_1.root pPb_HM185_1A_*.root
-#rm pPb_HM185_1_*.root
-#rm pPb_HM185_1A_*.root
-#rm pPb_HM185_1_list.dat
+ls -1 /rfs/sanders/crab_projects/crab_pPb2016_pPb_HM185_1/vnanal* > pPb_HM185_1_list.dat
+root -l -b -q 'MergeFiles.C+("pPb_HM185_1_list.dat","pPb_HM185_1_",10)'
+rm pPb_HM185_1_list.dat
+ls -1 pPb_HM185_1_*.root > pPb_HM185_1_list.dat
+root -l -b -q 'MergeFiles.C+("pPb_HM185_1_list.dat","pPb_HM185_1A_",10)'
+hadd -f pPb_HM185_1.root pPb_HM185_1A_*.root
+rm pPb_HM185_1_*.root
+rm pPb_HM185_1A_*.root
+rm pPb_HM185_1_list.dat
 
 ls -1 /rfs/sanders/crab_projects/crab_pPb2016_pPb_HM185_2/vnanal* > pPb_HM185_2_list.dat
 root -l -b -q 'MergeFiles.C+("pPb_HM185_2_list.dat","pPb_HM185_2_",10)'
@@ -16,7 +16,7 @@ ls -1 pPb_HM185_2_*.root > pPb_HM185_2_list.dat
 root -l -b -q 'MergeFiles.C+("pPb_HM185_2_list.dat","pPb_HM185_2A_",10)'
 hadd -f pPb_HM185_2.root pPb_HM185_2A_*.root
 rm pPb_HM185_2_*.root
-rm pPb_HM185_12_*.root
+rm pPb_HM185_2A_*.root
 rm pPb_HM185_2_list.dat
 
 ls -1 /rfs/sanders/crab_projects/crab_pPb2016_pPb_HM185_3/vnanal* > pPb_HM185_3_list.dat
@@ -59,12 +59,5 @@ rm pPb_HM185_6_*.root
 rm pPb_HM185_6A_*.root
 rm pPb_HM185_6_list.dat
 
-ls -1 /rfs/sanders/crab_projects/crab_pPb2016_pPb_HM185_7/vnanal* > pPb_HM185_7_list.dat
-root -l -b -q 'MergeFiles.C+("pPb_HM185_7_list.dat","pPb_HM185_7_",10)'
-rm pPb_HM185_7_list.dat
-ls -1 pPb_HM185_7_*.root > pPb_HM185_7_list.dat
-root -l -b -q 'MergeFiles.C+("pPb_HM185_7_list.dat","pPb_HM185_7A_",10)'
-hadd -f pPb_HM185_7.root pPb_HM185_7A_*.root
-rm pPb_HM185_7_*.root
-rm pPb_HM185_7A_*.root
-rm pPb_HM185_7_list.dat
+hadd -f pPb_HM185.root pPb_HM185_*.root
+rm pPb_HM185_*.root
