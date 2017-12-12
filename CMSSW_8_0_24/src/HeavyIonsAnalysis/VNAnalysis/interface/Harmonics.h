@@ -312,57 +312,57 @@ void Fill_N42C(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
 
 }
 
-void Fill_N42D(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
-  double ax = qx[HFp2];
-  double ay = qy[HFp2];
-  double aw = sumw[HFp2];
+/* void Fill_N42D(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){ */
+/*   double ax = qx[HFp2]; */
+/*   double ay = qy[HFp2]; */
+/*   double aw = sumw[HFp2]; */
 
-  double bx = qx[HFm2];
-  double by = qy[HFm2];
-  double bw = sumw[HFm2];
+/*   double bx = qx[HFm2]; */
+/*   double by = qy[HFm2]; */
+/*   double bw = sumw[HFm2]; */
 
-  double cx = qx[trackmid2];
-  double cy = qy[trackmid2];
-  double cw = sumw[trackmid2];
+/*   double cx = qx[trackmid2]; */
+/*   double cy = qy[trackmid2]; */
+/*   double cw = sumw[trackmid2]; */
 
-  double dx = qx[trackp118];
-  double dy = qy[trackp118];
-  double dw = sumw[trackp118];
+/*   double dx = qx[trackp218]; */
+/*   double dy = qy[trackp218]; */
+/*   double dw = sumw[trackp218]; */
 
-  double ex = qx[trackm118];
-  double ey = qy[trackm118];
-  double ew = sumw[trackm118];
+/*   double ex = qx[trackm218]; */
+/*   double ey = qy[trackm218]; */
+/*   double ew = sumw[trackm218]; */
 
-  qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by);
-  qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by);
-  qanal[anal].qB[bin][0]->Add(qxtrk_,ax*bx-ay*by);
-  qanal[anal].qB[bin][0]->Add(qytrk_,ay*bx+ax*by);
-  qanal[anal].wnA[bin][0]->Add(qcnt_,aw*bw);
-  qanal[anal].wnB[bin][0]->Add(qcnt_,aw*bw);
+/*   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by); */
+/*   qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by); */
+/*   qanal[anal].qB[bin][0]->Add(qxtrk_,ax*bx-ay*by); */
+/*   qanal[anal].qB[bin][0]->Add(qytrk_,ay*bx+ax*by); */
+/*   qanal[anal].wnA[bin][0]->Add(qcnt_,aw*bw); */
+/*   qanal[anal].wnB[bin][0]->Add(qcnt_,aw*bw); */
 
-  qanal[anal].qBA[bin][0]->Fill(0.,ax*bx*dx*ex - ay*by*dx*ex + ay*bx*dy*ex + ax*by*dy*ex + ay*bx*dx*ey + ax*by*dx*ey - ax*bx*dy*ey + ay*by*dy*ey);
-  qanal[anal].qCA[bin][0]->Fill(0.,ax*bx*pow(cx,2) - ay*by*pow(cx,2) + 2*ay*bx*cx*cy + 2*ax*by*cx*cy - ax*bx*pow(cy,2) + ay*by*pow(cy,2));
-  qanal[anal].qCB[bin][0]->Fill(0.,pow(cx,2)*dx*ex - pow(cy,2)*dx*ex + 2*cx*cy*dy*ex + 2*cx*cy*dx*ey - pow(cx,2)*dy*ey + pow(cy,2)*dy*ey);
-  qanal[anal].qBAcnt[bin][0]->Fill(0.,aw*bw*dw*ew);
-  qanal[anal].qCAcnt[bin][0]->Fill(0.,cw*cw*aw*bw);
-  qanal[anal].qCBcnt[bin][0]->Fill(0.,cw*cw*dw*ew);
+/*   qanal[anal].qBA[bin][0]->Fill(0.,ax*bx*dx*ex - ay*by*dx*ex + ay*bx*dy*ex + ax*by*dy*ex + ay*bx*dx*ey + ax*by*dx*ey - ax*bx*dy*ey + ay*by*dy*ey); */
+/*   qanal[anal].qCA[bin][0]->Fill(0.,ax*bx*pow(cx,2) - ay*by*pow(cx,2) + 2*ay*bx*cx*cy + 2*ax*by*cx*cy - ax*bx*pow(cy,2) + ay*by*pow(cy,2)); */
+/*   qanal[anal].qCB[bin][0]->Fill(0.,pow(cx,2)*dx*ex - pow(cy,2)*dx*ex + 2*cx*cy*dy*ex + 2*cx*cy*dx*ey - pow(cx,2)*dy*ey + pow(cy,2)*dy*ey); */
+/*   qanal[anal].qBAcnt[bin][0]->Fill(0.,aw*bw*dw*ew); */
+/*   qanal[anal].qCAcnt[bin][0]->Fill(0.,cw*cw*aw*bw); */
+/*   qanal[anal].qCBcnt[bin][0]->Fill(0.,cw*cw*dw*ew); */
 
-  int j=(int)(ran->Uniform(0,9.999))+1;
-  qanal[anal].qA[bin][j]->Add(qxtrk_,ax*bx-ay*by);
-  qanal[anal].qA[bin][j]->Add(qytrk_,ay*bx+ax*by);
-  qanal[anal].qB[bin][j]->Add(qxtrk_,ax*bx-ay*by);
-  qanal[anal].qB[bin][j]->Add(qytrk_,ay*bx+ax*by);
-  qanal[anal].wnA[bin][j]->Add(qcnt_,aw*aw);
-  qanal[anal].wnB[bin][j]->Add(qcnt_,aw*bw);
+/*   int j=(int)(ran->Uniform(0,9.999))+1; */
+/*   qanal[anal].qA[bin][j]->Add(qxtrk_,ax*bx-ay*by); */
+/*   qanal[anal].qA[bin][j]->Add(qytrk_,ay*bx+ax*by); */
+/*   qanal[anal].qB[bin][j]->Add(qxtrk_,ax*bx-ay*by); */
+/*   qanal[anal].qB[bin][j]->Add(qytrk_,ay*bx+ax*by); */
+/*   qanal[anal].wnA[bin][j]->Add(qcnt_,aw*aw); */
+/*   qanal[anal].wnB[bin][j]->Add(qcnt_,aw*bw); */
 
-  qanal[anal].qBA[bin][j]->Fill(0.,ax*bx*dx*ex - ay*by*dx*ex + ay*bx*dy*ex + ax*by*dy*ex + ay*bx*dx*ey + ax*by*dx*ey - ax*bx*dy*ey + ay*by*dy*ey);
-  qanal[anal].qCA[bin][j]->Fill(0.,ax*bx*pow(cx,2) - ay*by*pow(cx,2) + 2*ay*bx*cx*cy + 2*ax*by*cx*cy - ax*bx*pow(cy,2) + ay*by*pow(cy,2));
-  qanal[anal].qCB[bin][j]->Fill(0.,pow(cx,2)*dx*ex - pow(cy,2)*dx*ex + 2*cx*cy*dy*ex + 2*cx*cy*dx*ey - pow(cx,2)*dy*ey + pow(cy,2)*dy*ey);
-  qanal[anal].qBAcnt[bin][j]->Fill(0.,aw*bw*dw*ew);
-  qanal[anal].qCAcnt[bin][j]->Fill(0.,cw*cw*aw*bw);
-  qanal[anal].qCBcnt[bin][j]->Fill(0.,cw*cw*dw*ew);
+/*   qanal[anal].qBA[bin][j]->Fill(0.,ax*bx*dx*ex - ay*by*dx*ex + ay*bx*dy*ex + ax*by*dy*ex + ay*bx*dx*ey + ax*by*dx*ey - ax*bx*dy*ey + ay*by*dy*ey); */
+/*   qanal[anal].qCA[bin][j]->Fill(0.,ax*bx*pow(cx,2) - ay*by*pow(cx,2) + 2*ay*bx*cx*cy + 2*ax*by*cx*cy - ax*bx*pow(cy,2) + ay*by*pow(cy,2)); */
+/*   qanal[anal].qCB[bin][j]->Fill(0.,pow(cx,2)*dx*ex - pow(cy,2)*dx*ex + 2*cx*cy*dy*ex + 2*cx*cy*dx*ey - pow(cx,2)*dy*ey + pow(cy,2)*dy*ey); */
+/*   qanal[anal].qBAcnt[bin][j]->Fill(0.,aw*bw*dw*ew); */
+/*   qanal[anal].qCAcnt[bin][j]->Fill(0.,cw*cw*aw*bw); */
+/*   qanal[anal].qCBcnt[bin][j]->Fill(0.,cw*cw*dw*ew); */
 
-}
+/* } */
 
 void Fill_N523(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
   double a2x = qx[HFp2];
