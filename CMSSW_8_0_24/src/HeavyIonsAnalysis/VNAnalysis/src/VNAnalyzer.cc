@@ -240,6 +240,22 @@ private:
   TH2D * qytrk7;
   TH2D * qcnt;
   TH2D * avpt;
+  TH2D * res1[ntrkbins];
+  TH2D * res2[ntrkbins];
+  TH2D * res3[ntrkbins];
+  TH2D * res4[ntrkbins];
+  TH2D * res5[ntrkbins];
+  TH2D * res6[ntrkbins];
+  TH2D * res7[ntrkbins];
+  TH2D * res1w[ntrkbins];
+  TH2D * res2w[ntrkbins];
+  TH2D * res3w[ntrkbins];
+  TH2D * res4w[ntrkbins];
+  TH2D * res5w[ntrkbins];
+  TH2D * res6w[ntrkbins];
+  TH2D * res7w[ntrkbins];
+
+
   HiEvtPlaneFlatten * flat[NumEPNames];
   bool loadDB_;
   bool useNtrkBins_; 
@@ -734,6 +750,67 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
 
   }
 
+  //==============   Resolution terms  ========
+  TFileDirectory resdir = fs->mkdir("Resolutions");
+  for(int i = 0; i<ntrkbins; i++) {
+    TFileDirectory ressubdir = resdir.mkdir(Form("%d_%d",(int)trkBins[i],(int)trkBins[i+1]));
+    res1[i] = ressubdir.make<TH2D>("res1","res1",46,0,46,46,0,46);
+    res2[i] = ressubdir.make<TH2D>("res2","res2",46,0,46,46,0,46);
+    res3[i] = ressubdir.make<TH2D>("res3","res3",46,0,46,46,0,46);
+    res4[i] = ressubdir.make<TH2D>("res4","res4",46,0,46,46,0,46);
+    res5[i] = ressubdir.make<TH2D>("res5","res5",46,0,46,46,0,46);
+    res6[i] = ressubdir.make<TH2D>("res6","res6",46,0,46,46,0,46);
+    res7[i] = ressubdir.make<TH2D>("res7","res7",46,0,46,46,0,46);
+    res1w[i] = ressubdir.make<TH2D>("res1w","res1w",46,0,46,46,0,46);
+    res2w[i] = ressubdir.make<TH2D>("res2w","res2w",46,0,46,46,0,46);
+    res3w[i] = ressubdir.make<TH2D>("res3w","res3w",46,0,46,46,0,46);
+    res4w[i] = ressubdir.make<TH2D>("res4w","res4w",46,0,46,46,0,46);
+    res5w[i] = ressubdir.make<TH2D>("res5w","res5w",46,0,46,46,0,46);
+    res6w[i] = ressubdir.make<TH2D>("res6w","res6w",46,0,46,46,0,46);
+    res7w[i] = ressubdir.make<TH2D>("res7w","res7w",46,0,46,46,0,46);
+    res1[i]->Reset();
+    res1[i]->Sumw2();
+    res1[i]->SetOption("colz");
+    res2[i]->Reset();
+    res2[i]->Sumw2();
+    res2[i]->SetOption("colz");
+    res3[i]->Reset();
+    res3[i]->Sumw2();
+    res3[i]->SetOption("colz");
+    res4[i]->Reset();
+    res4[i]->Sumw2();
+    res4[i]->SetOption("colz");
+    res5[i]->Reset();
+    res5[i]->Sumw2();
+    res5[i]->SetOption("colz");
+    res6[i]->Reset();
+    res6[i]->Sumw2();
+    res6[i]->SetOption("colz");
+    res7[i]->Reset();
+    res7[i]->Sumw2();
+    res7[i]->SetOption("colz");
+    res1w[i]->Reset();
+    res1w[i]->Sumw2();
+    res1w[i]->SetOption("colz");
+    res2w[i]->Reset();
+    res2w[i]->Sumw2();
+    res2w[i]->SetOption("colz");
+    res3w[i]->Reset();
+    res3w[i]->Sumw2();
+    res3w[i]->SetOption("colz");
+    res4w[i]->Reset();
+    res4w[i]->Sumw2();
+    res4w[i]->SetOption("colz");
+    res5w[i]->Reset();
+    res5w[i]->Sumw2();
+    res5w[i]->SetOption("colz");
+    res6w[i]->Reset();
+    res6w[i]->Sumw2();
+    res6w[i]->SetOption("colz");
+    res7w[i]->Reset();
+    res7w[i]->Sumw2();
+    res7w[i]->SetOption("colz");
+  }
   //=====================
   TFileDirectory hardir = fs->mkdir("Harmonics");
   qxt = (TH2D *) hTemplate->Clone("qxt");
@@ -1158,7 +1235,69 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     if(ian==D2432) Fill_D2432(D2432,ibin,  qxtrk2, qytrk2, qxtrk3, qytrk3, qcnt, qx, qy, sumw);
     if(ian==D2432A)Fill_D2432A(D2432A,ibin, qxtrk2, qytrk2, qxtrk3, qytrk3, qcnt, qx, qy, sumw);
   }
-  
+  for(int i = HFm1; i<= HFp1f; i++) {
+    for(int j = HFm1; j<=HFp1f; j++) {
+      int ii = i-HFm1;
+      int jj = j-HFm1;
+      res1[ibin]->SetBinContent(ii,jj, res1[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res1w[ibin]->SetBinContent(ii,jj, res1w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+  for(int i = HFm2; i<= HFp2f; i++) {
+    for(int j = HFm2; j<=HFp2f; j++) {
+      int ii = i-HFm2;
+      int jj = j-HFm2;
+      res2[ibin]->SetBinContent(ii,jj, res2[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res2w[ibin]->SetBinContent(ii,jj, res2w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+  for(int i = HFm3; i<= HFp3f; i++) {
+    for(int j = HFm3; j<=HFp3f; j++) {
+      int ii = i-HFm3;
+      int jj = j-HFm3;
+      res3[ibin]->SetBinContent(ii,jj, res3[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res3w[ibin]->SetBinContent(ii,jj, res3w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+
+  for(int i = HFm4; i<= HFp4f; i++) {
+    for(int j = HFm4; j<=HFp4f; j++) {
+      int ii = i-HFm4;
+      int jj = j-HFm4;
+      res4[ibin]->SetBinContent(ii,jj, res4[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res4w[ibin]->SetBinContent(ii,jj, res4w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+  for(int i = HFm5; i<= trackp522; i++) {
+    for(int j = HFm5; j<=trackp522; j++) {
+      int ii = i-HFm5;
+      int jj = j-HFm5;
+      res5[ibin]->SetBinContent(ii,jj, res5[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res5w[ibin]->SetBinContent(ii,jj, res5w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+  for(int i = HFm6; i<= trackp622; i++) {
+    for(int j = HFm6; j<=trackp622; j++) {
+      int ii = i-HFm6;
+      int jj = j-HFm6;
+      res6[ibin]->SetBinContent(ii,jj, res6[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res6w[ibin]->SetBinContent(ii,jj, res6w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
+
+  for(int i = HFm7; i<= trackp722; i++) {
+    for(int j = HFm7; j<=trackp722; j++) {
+      int ii = i-HFm7;
+      int jj = j-HFm7;
+      res7[ibin]->SetBinContent(ii,jj, res7[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+      res7w[ibin]->SetBinContent(ii,jj, res7w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+    }
+  }
   if(makeTree_) tree->Fill(); 
 }
 
