@@ -1,4 +1,8 @@
 void Fill_N(int anal,int bin, TH2D *qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double Ax, double Ay, double Bx, double By, double Cx, double Cy, double wA, double wB, double wC){
+  if(pow(Ax,2)+pow(Ay,2) < 1e-6) return;
+  if(pow(Bx,2)+pow(By,2) < 1e-6) return;
+  if(pow(Cx,2)+pow(Cy,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,Ax);
   qanal[anal].qA[bin][0]->Add(qytrk_,Ay);
   qanal[anal].qB[bin][0]->Add(qxtrk_,Bx);
@@ -27,24 +31,31 @@ void Fill_N(int anal,int bin, TH2D *qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double 
   qanal[anal].qCBcnt[bin][j]->Fill(0.,wC*wB);
 }
 
-void Fill_N112A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
+void Fill_N112(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
   double a1x = qx[HFp1];
   double a1y = qy[HFp1];
   double a1w = sumw[HFp1];
-  double a2x = qx[HFm2];
-  double a2y = qy[HFm2];
-  double a2w = sumw[HFm2];
+  double a2x = qx[HFp2];
+  double a2y = qy[HFp2];
+  double a2w = sumw[HFp2];
 
   double b1x = qx[HFm1];
   double b1y = qy[HFm1];
   double b1w = sumw[HFm1];
-  double b2x = qx[HFp2];
-  double b2y = qy[HFp2];
-  double b2w = sumw[HFp2];
+  double b2x = qx[HFm2];
+  double b2y = qy[HFm2];
+  double b2w = sumw[HFm2];
 
-  double c1x = qx[trackmid1];
-  double c1y = qy[trackmid1];
-  double c1w = sumw[trackmid1];
+  double c1x = qx[trackp114];
+  double c1y = qy[trackp114];
+  double c1w = sumw[trackp114];
+
+  if(pow(a1x,2)+pow(a1y,2) < 1e-6) return;
+  if(pow(b1x,2)+pow(b1y,2) < 1e-6) return;
+  if(pow(c1x,2)+pow(c1y,2) < 1e-6) return;
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+
   //double c2x = qx[trackmid2];
   //double c2y = qy[trackmid2];
   //double c2w = sumw[trackmid2];
@@ -76,6 +87,174 @@ void Fill_N112A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, d
   qanal[anal].qCAcnt[bin][j]->Fill(0.,c1w*a1w);
   qanal[anal].qCBcnt[bin][j]->Fill(0.,c1w*b1w);
 }
+void Fill_N112A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
+  double a1x = qx[HFp1];
+  double a1y = qy[HFp1];
+  double a1w = sumw[HFp1];
+  double a2x = qx[HFm2];
+  double a2y = qy[HFm2];
+  double a2w = sumw[HFm2];
+
+  double b1x = qx[HFm1];
+  double b1y = qy[HFm1];
+  double b1w = sumw[HFm1];
+  double b2x = qx[HFp2];
+  double b2y = qy[HFp2];
+  double b2w = sumw[HFp2];
+
+  double c1x = qx[trackp114];
+  double c1y = qy[trackp114];
+  double c1w = sumw[trackp114];
+
+  if(pow(a1x,2)+pow(a1y,2) < 1e-6) return;
+  if(pow(b1x,2)+pow(b1y,2) < 1e-6) return;
+  if(pow(c1x,2)+pow(c1y,2) < 1e-6) return;
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+
+  //double c2x = qx[trackmid2];
+  //double c2y = qy[trackmid2];
+  //double c2w = sumw[trackmid2];
+
+  qanal[anal].qA[bin][0]->Add(qxtrk_,a1x*a2x+a1y*a2y);
+  qanal[anal].qA[bin][0]->Add(qytrk_,-a1y*a2x+a1x*a2y);
+  qanal[anal].qB[bin][0]->Add(qxtrk_,b1x*b2x+b1y*b2y);
+  qanal[anal].qB[bin][0]->Add(qytrk_,-b1y*b2x+b1x*b2y);
+  qanal[anal].wnA[bin][0]->Add(qcnt_,a1w*a2w);
+  qanal[anal].wnB[bin][0]->Add(qcnt_,b1w*b2w);
+  qanal[anal].qBA[bin][0]->Fill(0.,a1x*b1x + a1y*b1y);
+  qanal[anal].qCA[bin][0]->Fill(0.,a1x*c1x + a1y*c1y);
+  qanal[anal].qCB[bin][0]->Fill(0.,b1x*c1x + b1y*c1y);
+  qanal[anal].qBAcnt[bin][0]->Fill(0.,b1w*a1w);
+  qanal[anal].qCAcnt[bin][0]->Fill(0.,c1w*a1w);
+  qanal[anal].qCBcnt[bin][0]->Fill(0.,c1w*b1w);
+  
+  int j=(int)(ran->Uniform(0,9.999))+1;
+  qanal[anal].qA[bin][j]->Add(qxtrk_,a1x*a2x+a1y*a2y);
+  qanal[anal].qA[bin][j]->Add(qytrk_,-a1y*a2x+a1x*a2y);
+  qanal[anal].qB[bin][j]->Add(qxtrk_,b1x*b2x+b1y*b2y);
+  qanal[anal].qB[bin][j]->Add(qytrk_,-b1y*b2x+b1x*b2y);
+  qanal[anal].wnA[bin][j]->Add(qcnt_,a1w*a2w);
+  qanal[anal].wnB[bin][j]->Add(qcnt_,b1w*b2w);
+  qanal[anal].qBA[bin][j]->Fill(0.,a1x*b1x + a1y*b1y);
+  qanal[anal].qCA[bin][j]->Fill(0.,a1x*c1x + a1y*c1y);
+  qanal[anal].qCB[bin][j]->Fill(0.,b1x*c1x + b1y*c1y);
+  qanal[anal].qBAcnt[bin][j]->Fill(0.,b1w*a1w);
+  qanal[anal].qCAcnt[bin][j]->Fill(0.,c1w*a1w);
+  qanal[anal].qCBcnt[bin][j]->Fill(0.,c1w*b1w);
+}
+
+void Fill_N112B(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
+  double a1x = qx[HFp1];
+  double a1y = qy[HFp1];
+  double a1w = sumw[HFp1];
+  double a2x = qx[HFm2];
+  double a2y = qy[HFm2];
+  double a2w = sumw[HFm2];
+
+  double b1x = qx[HFm1];
+  double b1y = qy[HFm1];
+  double b1w = sumw[HFm1];
+  double b2x = qx[HFp2];
+  double b2y = qy[HFp2];
+  double b2w = sumw[HFp2];
+
+  double c1x = qx[trackm114];
+  double c1y = qy[trackm114];
+  double c1w = sumw[trackm114];
+
+  if(pow(a1x,2)+pow(a1y,2) < 1e-6) return;
+  if(pow(b1x,2)+pow(b1y,2) < 1e-6) return;
+  if(pow(c1x,2)+pow(c1y,2) < 1e-6) return;
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+
+  //double c2x = qx[trackmid2];
+  //double c2y = qy[trackmid2];
+  //double c2w = sumw[trackmid2];
+
+  qanal[anal].qA[bin][0]->Add(qxtrk_,a1x*a2x+a1y*a2y);
+  qanal[anal].qA[bin][0]->Add(qytrk_,-a1y*a2x+a1x*a2y);
+  qanal[anal].qB[bin][0]->Add(qxtrk_,b1x*b2x+b1y*b2y);
+  qanal[anal].qB[bin][0]->Add(qytrk_,-b1y*b2x+b1x*b2y);
+  qanal[anal].wnA[bin][0]->Add(qcnt_,a1w*a2w);
+  qanal[anal].wnB[bin][0]->Add(qcnt_,b1w*b2w);
+  qanal[anal].qBA[bin][0]->Fill(0.,a1x*b1x + a1y*b1y);
+  qanal[anal].qCA[bin][0]->Fill(0.,a1x*c1x + a1y*c1y);
+  qanal[anal].qCB[bin][0]->Fill(0.,b1x*c1x + b1y*c1y);
+  qanal[anal].qBAcnt[bin][0]->Fill(0.,b1w*a1w);
+  qanal[anal].qCAcnt[bin][0]->Fill(0.,c1w*a1w);
+  qanal[anal].qCBcnt[bin][0]->Fill(0.,c1w*b1w);
+  
+  int j=(int)(ran->Uniform(0,9.999))+1;
+  qanal[anal].qA[bin][j]->Add(qxtrk_,a1x*a2x+a1y*a2y);
+  qanal[anal].qA[bin][j]->Add(qytrk_,-a1y*a2x+a1x*a2y);
+  qanal[anal].qB[bin][j]->Add(qxtrk_,b1x*b2x+b1y*b2y);
+  qanal[anal].qB[bin][j]->Add(qytrk_,-b1y*b2x+b1x*b2y);
+  qanal[anal].wnA[bin][j]->Add(qcnt_,a1w*a2w);
+  qanal[anal].wnB[bin][j]->Add(qcnt_,b1w*b2w);
+  qanal[anal].qBA[bin][j]->Fill(0.,a1x*b1x + a1y*b1y);
+  qanal[anal].qCA[bin][j]->Fill(0.,a1x*c1x + a1y*c1y);
+  qanal[anal].qCB[bin][j]->Fill(0.,b1x*c1x + b1y*c1y);
+  qanal[anal].qBAcnt[bin][j]->Fill(0.,b1w*a1w);
+  qanal[anal].qCAcnt[bin][j]->Fill(0.,c1w*a1w);
+  qanal[anal].qCBcnt[bin][j]->Fill(0.,c1w*b1w);
+}
+void Fill_N123(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
+  double a2x = qx[HFp2];
+  double a2y = qy[HFp2];
+  double a2w = sumw[HFp2];
+  double a3x = qx[HFp3];
+  double a3y = qy[HFp3];
+  double a3w = sumw[HFp3];
+
+  double b2x = qx[HFm2];
+  double b2y = qy[HFm2];
+  double b2w = sumw[HFm2];
+  double b3x = qx[HFm3];
+  double b3y = qy[HFm3];
+  double b3w = sumw[HFm3];
+
+  double c2x = qx[trackmid2];
+  double c2y = qy[trackmid2];
+  double c2w = sumw[trackmid2];
+  //double c3x = qx[trackmid3];
+  //double c3y = qy[trackmid3];
+  //double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+
+  qanal[anal].qA[bin][0]->Add(qxtrk_,a2x*a3x+a2y*a3y);
+  qanal[anal].qA[bin][0]->Add(qytrk_,-a2y*a3x+a2x*a3y);
+  qanal[anal].qB[bin][0]->Add(qxtrk_,b2x*b3x+b2y*b3y);
+  qanal[anal].qB[bin][0]->Add(qytrk_,-b2y*b3x+b2x*b3y);
+  qanal[anal].wnA[bin][0]->Add(qcnt_,a2w*a3w);
+  qanal[anal].wnB[bin][0]->Add(qcnt_,b2w*b3w);
+  qanal[anal].qBA[bin][0]->Fill(0.,a2x*b2x + a2y*b2y);
+  qanal[anal].qCA[bin][0]->Fill(0.,a2x*c2x + a2y*c2y);
+  qanal[anal].qCB[bin][0]->Fill(0.,b2x*c2x + b2y*c2y);
+  qanal[anal].qBAcnt[bin][0]->Fill(0.,b2w*a2w);
+  qanal[anal].qCAcnt[bin][0]->Fill(0.,c2w*a2w);
+  qanal[anal].qCBcnt[bin][0]->Fill(0.,c2w*b2w);
+  
+  int j=(int)(ran->Uniform(0,9.999))+1;
+  qanal[anal].qA[bin][j]->Add(qxtrk_,a2x*a3x+a2y*a3y);
+  qanal[anal].qA[bin][j]->Add(qytrk_,-a2y*a3x+a2x*a3y);
+  qanal[anal].qB[bin][j]->Add(qxtrk_,b2x*b3x+b2y*b3y);
+  qanal[anal].qB[bin][j]->Add(qytrk_,-b2y*b3x+b2x*b3y);
+  qanal[anal].wnA[bin][j]->Add(qcnt_,a2w*a3w);
+  qanal[anal].wnB[bin][j]->Add(qcnt_,b2w*b3w);
+  qanal[anal].qBA[bin][j]->Fill(0.,a2x*b2x + a2y*b2y);
+  qanal[anal].qCA[bin][j]->Fill(0.,a2x*c2x + a2y*c2y);
+  qanal[anal].qCB[bin][j]->Fill(0.,b2x*c2x + b2y*c2y);
+  qanal[anal].qBAcnt[bin][j]->Fill(0.,b2w*a2w);
+  qanal[anal].qCAcnt[bin][j]->Fill(0.,c2w*a2w);
+  qanal[anal].qCBcnt[bin][j]->Fill(0.,c2w*b2w);
+}
 void Fill_N123A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, double * qx, double * qy, double * sumw){
   double a2x = qx[HFp2];
   double a2y = qy[HFp2];
@@ -97,6 +276,12 @@ void Fill_N123A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, d
   //double c3x = qx[trackmid3];
   //double c3y = qy[trackmid3];
   //double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
 
   qanal[anal].qA[bin][0]->Add(qxtrk_,a2x*a3x+a2y*a3y);
   qanal[anal].qA[bin][0]->Add(qytrk_,-a2y*a3x+a2x*a3y);
@@ -138,6 +323,11 @@ void Fill_N42(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double Cx = qx[trackmid2];
   double Cy = qy[trackmid2];
   double wC = sumw[trackmid2];
+
+  if(pow(Ax,2)+pow(Ay,2) < 1e-6) return;
+  if(pow(Bx,2)+pow(By,2) < 1e-6) return;
+  if(pow(Cx,2)+pow(Cy,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,pow(Ax,2)-pow(Ay,2));
   qanal[anal].qA[bin][0]->Add(qytrk_,2*Ax*Ay);
   qanal[anal].qB[bin][0]->Add(qxtrk_,pow(Bx,2)-pow(By,2));
@@ -178,6 +368,10 @@ void Fill_N42A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double cw = sumw[trackmid2];
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
 
   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by);
   qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by);
@@ -230,6 +424,12 @@ void Fill_N42B(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double ey = qy[trackm210];
   double ew = sumw[trackm210];
 
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+  if(pow(dx,2)+pow(dy,2) < 1e-6) return;
+  if(pow(ex,2)+pow(ey,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by);
   qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by);
   qanal[anal].qB[bin][0]->Add(qxtrk_,ax*bx-ay*by);
@@ -280,6 +480,13 @@ void Fill_N42C(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double ex = qx[trackm218];
   double ey = qy[trackm218];
   double ew = sumw[trackm218];
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+  if(pow(dx,2)+pow(dy,2) < 1e-6) return;
+  if(pow(ex,2)+pow(ey,2) < 1e-6) return;
+
 
   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by);
   qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by);
@@ -386,6 +593,14 @@ void Fill_N523(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
 
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
+
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,a2x*a3x-a2y*a3y);
   qanal[anal].qA[bin][0]->Add(qytrk_,a2y*a3x+a2x*a3y);
   qanal[anal].qB[bin][0]->Add(qxtrk_,b2x*b3x-b2y*b3y);
@@ -435,6 +650,14 @@ void Fill_N523A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, d
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
 
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,a2x*a3x-a2y*a3y);
   qanal[anal].qA[bin][0]->Add(qytrk_,a2y*a3x+a2x*a3y);
   qanal[anal].qB[bin][0]->Add(qxtrk_,b2x*b3x-b2y*b3y);
@@ -475,6 +698,12 @@ void Fill_N63(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double cx = qx[trackmid3];
   double cy = qy[trackmid3];
   double wc = sumw[trackmid3];
+
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,pow(ax,2)-pow(ay,2));
   qanal[anal].qA[bin][0]->Add(qytrk_,2*ax*ay);
   qanal[anal].qB[bin][0]->Add(qxtrk_,pow(bx,2)-pow(by,2));
@@ -520,6 +749,11 @@ void Fill_N63A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double cx = qx[trackmid3];
   double cy = qy[trackmid3];
   double cw = sumw[trackmid3];
+
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
 
   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*bx-ay*by);
   qanal[anal].qA[bin][0]->Add(qytrk_,ay*bx+ax*by);
@@ -570,6 +804,12 @@ void Fill_N62(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double wc = sumw[trackmid2];
+
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,pow(ax,3)-3*ax*pow(ay,2));
   qanal[anal].qA[bin][0]->Add(qytrk_,3*ay*pow(ax,2)-pow(ay,3));
   qanal[anal].qB[bin][0]->Add(qxtrk_,pow(bx,3)-3*bx*pow(by,2));
@@ -618,6 +858,12 @@ void Fill_N62A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double wc = sumw[trackmid2]; 
+
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,ax*ax*bx-ay*ay*bx-2*ax*ay*by);
   qanal[anal].qA[bin][0]->Add(qytrk_,2*ax*ay*bx+ax*ax*by-ay*ay*by);
   qanal[anal].qB[bin][0]->Add(qxtrk_,bx*bx*ax-by*by*ax-2*bx*by*ay);
@@ -678,6 +924,14 @@ void Fill_N723(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double c3x = qx[trackmid3];
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
+
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   qanal[anal].qA[bin][0]->Add(qxtrk_,pow(a2x,2)*a3x - pow(a2y,2)*a3x - 2*a2x*a2y*a3y);
   qanal[anal].qA[bin][0]->Add(qytrk_,2*a2x*a2y*a3x  + pow(a2x,2)*a3y - pow(a2y,2)*a3y );
@@ -748,6 +1002,13 @@ void Fill_N723A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, d
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
 
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
+
   qanal[anal].qA[bin][0]->Add(qxtrk_,pow(a2x,2)*a3x - pow(a2y,2)*a3x- 2*a2x*a2y*a3y);
   qanal[anal].qA[bin][0]->Add(qytrk_,2*a2x*a2y*a3x + pow(a2x,2)*a3y- pow(a2y,2)*a3y );
   qanal[anal].qB[bin][0]->Add(qxtrk_,pow(b2x,2)*b3x - pow(b2y,2)*b3x - 2*b2x*b2y*b3y);
@@ -806,6 +1067,12 @@ void Fill_D24(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double wc = sumw[trackmid2];
+
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qxy->Reset();
   qxy->Add(qxtrk_,1.);
   qxy->Multiply(qytrk_);
@@ -878,6 +1145,14 @@ void Fill_D24A(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk3_
   double c3x = qx[trackmid2];
   double c3y = qy[trackmid2];
   double c3w = sumw[trackmid2];
+
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   qx2y3->Reset();
   qx2y3->Add(qxtrk2_,1.);
@@ -956,6 +1231,11 @@ void Fill_D26(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double wc = sumw[trackmid2];
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qxxy->Reset();
   qxxy->Add(qxtrk_,1.);
   qxxy->Multiply(qxtrk_);
@@ -1046,6 +1326,11 @@ void Fill_D26A(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, do
   double cx = qx[trackmid2];
   double cy = qy[trackmid2];
   double wc = sumw[trackmid2];
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qxxy->Reset();
   qxxy->Add(qxtrk_,1.);
   qxxy->Multiply(qxtrk_);
@@ -1136,6 +1421,11 @@ void Fill_D34(int anal, int bin, TH2D * qxtrk_, TH2D * qytrk_, TH2D * qcnt_, dou
   double cx = qx[trackmid3];
   double cy = qy[trackmid3];
   double wc = sumw[trackmid3];
+
+  if(pow(ax,2)+pow(ay,2) < 1e-6) return;
+  if(pow(bx,2)+pow(by,2) < 1e-6) return;
+  if(pow(cx,2)+pow(cy,2) < 1e-6) return;
+
   qxy->Reset();
   qxy->Add(qxtrk_,1.);
   qxy->Multiply(qytrk_);
@@ -1210,6 +1500,13 @@ void Fill_D34A(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk3_
   double c3x = qx[trackmid3];
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   qx2y3->Reset();
   qx2y3->Add(qxtrk2_,1.);
@@ -1297,6 +1594,13 @@ void Fill_D2232(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk3
   double c3x = qx[trackmid3];
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   qx2y3->Reset();
   qx2y3->Add(qxtrk2_,1.);
@@ -1390,6 +1694,14 @@ void Fill_D2232A(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
 
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
+
   qx2y3->Reset();
   qx2y3->Add(qxtrk2_,1.);
   qx2y3->Multiply(qytrk3_);
@@ -1476,6 +1788,13 @@ void Fill_D2432(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk3
   double c3x = qx[trackmid3];
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   int k=(int)(ran->Uniform(0,9.999))+1;
   for(int i = 1; i<=qxtrk2_->GetNbinsX(); i++) {
@@ -1564,6 +1883,13 @@ void Fill_D2432A(int anal, int bin, TH2D * qxtrk2_, TH2D * qytrk2_, TH2D * qxtrk
   double c3x = qx[trackmid3];
   double c3y = qy[trackmid3];
   double c3w = sumw[trackmid3];
+
+  if(pow(a2x,2)+pow(a2y,2) < 1e-6) return;
+  if(pow(b2x,2)+pow(b2y,2) < 1e-6) return;
+  if(pow(c2x,2)+pow(c2y,2) < 1e-6) return;
+  if(pow(a3x,2)+pow(a3y,2) < 1e-6) return;
+  if(pow(b3x,2)+pow(b3y,2) < 1e-6) return;
+  if(pow(c3x,2)+pow(c3y,2) < 1e-6) return;
 
   int k=(int)(ran->Uniform(0,9.999))+1;
   for(int i = 1; i<=qxtrk2_->GetNbinsX(); i++) {
