@@ -4,6 +4,7 @@
 // Class:      VNAnalyzer
 // 
 
+#define pPb
 
 // system include files
 #include <memory>
@@ -73,11 +74,11 @@ static const int MaxTracks = 50;
 
 static const int netabinsDefault = 12;
 static const float etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
-static const int nanals = 44;
+static const int nanals = 47;
 enum AnalType {
   N1MCm22, N1MCm18, N1MCm14, N1MCm10, N1MCm06,
   N1MCm02, N1MCp22, N1MCp18, N1MCp14, N1MCp10,
-  N1MCp06, N1MCp02,   N112A,   N123A,      N1A, N1B, 
+  N1MCp06, N1MCp02,   N112, N112A, N112B,  N123, N123A,      N1A, N1B, 
        N2,      N3,      N4,      N5,      N6,    
       N7,     N42,    N42A,    N42B,     N42C,
      N523,   N523A,     N63,    N63A,     N62,    
@@ -88,7 +89,7 @@ enum AnalType {
 string AnalNames[]={
   "N1MCm22", "N1MCm18", "N1MCm14", "N1MCm10","N1MCm06",
   "N1MCm02", "N1MCp22", "N1MCp18", "N1MCp14","N1MCp10",
-  "N1MCp06", "N1MCp02",   "N112A",   "N123A",     "N1A", "N1B",
+  "N1MCp06", "N1MCp02",   "N112", "N112A", "N112B",   "N123", "N123A",     "N1A", "N1B",
        "N2",      "N3",      "N4",      "N5",     "N6",   
         "N7",     "N42",    "N42A",    "N42B",  "N42C",
      "N523",   "N523A",     "N63",    "N63A",    "N62",  
@@ -254,6 +255,20 @@ private:
   TH2D * res5w[ntrkbins];
   TH2D * res6w[ntrkbins];
   TH2D * res7w[ntrkbins];
+  TH2D * res1ep[ntrkbins];
+  TH2D * res2ep[ntrkbins];
+  TH2D * res3ep[ntrkbins];
+  TH2D * res4ep[ntrkbins];
+  TH2D * res5ep[ntrkbins];
+  TH2D * res6ep[ntrkbins];
+  TH2D * res7ep[ntrkbins];
+  TH2D * res1cnt[ntrkbins];
+  TH2D * res2cnt[ntrkbins];
+  TH2D * res3cnt[ntrkbins];
+  TH2D * res4cnt[ntrkbins];
+  TH2D * res5cnt[ntrkbins];
+  TH2D * res6cnt[ntrkbins];
+  TH2D * res7cnt[ntrkbins];
 
 
   HiEvtPlaneFlatten * flat[NumEPNames];
@@ -366,25 +381,38 @@ private:
     
     iEvent.getByToken(vertexToken,vertex_);
     VertexCollection recoVertices = *vertex_;
+#ifndef pPb
     if ( recoVertices.size() > 100 ) return -1;
     sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
-	if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
-	return a.tracksSize() > b.tracksSize();
+     	if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
+     	return a.tracksSize() > b.tracksSize();
       });
-   
+    
     int primaryvtx = 0;
-   
+    
     double vz = recoVertices[primaryvtx].z();
     if (fabs(vz) < -15 || fabs(vz) > 15) {
       return -1;
     }
- 
+    
     math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
     double vxError = recoVertices[primaryvtx].xError();
     double vyError = recoVertices[primaryvtx].yError();
     double vzError = recoVertices[primaryvtx].zError();
     
-
+#else
+    sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
+	//			if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
+	return a.tracksSize() > b.tracksSize();
+      });
+    
+    int primaryvtx = 0;
+    math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+    double vxError = recoVertices[primaryvtx].xError();
+    double vyError = recoVertices[primaryvtx].yError();
+    double vzError = recoVertices[primaryvtx].zError();
+    
+#endif
     iEvent.getByLabel(trackTag_,trackCollection_);
 
     for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
@@ -392,16 +420,17 @@ private:
       if ( itTrack->charge() == 0 ) continue;
       if ( fabs(itTrack->eta()) > 2.4 ) continue;
       bool bPix = false;
+#ifndef pPb
       int nHits = itTrack->numberOfValidHits();
       if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
+#endif
       if ( not bPix ) {
+#ifndef pPb
 	if ( nHits < 11 ) continue;
-	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
-	  continue;
-	}
-	if ( itTrack->ptError()/itTrack->pt() > 0.1 ) {
-	  continue;
-	}
+	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) 	  continue;
+#endif
+	if ( itTrack->ptError()/itTrack->pt() > 0.1 )   continue;
+	
 	
 	double d0 = -1.* itTrack->dxy(v1);
 	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
@@ -768,6 +797,20 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     res5w[i] = ressubdir.make<TH2D>("res5w","res5w",46,0,46,46,0,46);
     res6w[i] = ressubdir.make<TH2D>("res6w","res6w",46,0,46,46,0,46);
     res7w[i] = ressubdir.make<TH2D>("res7w","res7w",46,0,46,46,0,46);
+    res1ep[i] = ressubdir.make<TH2D>("res1ep","res1ep",46,0,46,46,0,46);
+    res2ep[i] = ressubdir.make<TH2D>("res2ep","res2ep",46,0,46,46,0,46);
+    res3ep[i] = ressubdir.make<TH2D>("res3ep","res3ep",46,0,46,46,0,46);
+    res4ep[i] = ressubdir.make<TH2D>("res4ep","res4ep",46,0,46,46,0,46);
+    res5ep[i] = ressubdir.make<TH2D>("res5ep","res5ep",46,0,46,46,0,46);
+    res6ep[i] = ressubdir.make<TH2D>("res6ep","res6ep",46,0,46,46,0,46);
+    res7ep[i] = ressubdir.make<TH2D>("res7ep","res7ep",46,0,46,46,0,46);
+    res1cnt[i] = ressubdir.make<TH2D>("res1cnt","res1cnt",46,0,46,46,0,46);
+    res2cnt[i] = ressubdir.make<TH2D>("res2cnt","res2cnt",46,0,46,46,0,46);
+    res3cnt[i] = ressubdir.make<TH2D>("res3cnt","res3cnt",46,0,46,46,0,46);
+    res4cnt[i] = ressubdir.make<TH2D>("res4cnt","res4cnt",46,0,46,46,0,46);
+    res5cnt[i] = ressubdir.make<TH2D>("res5cnt","res5cnt",46,0,46,46,0,46);
+    res6cnt[i] = ressubdir.make<TH2D>("res6cnt","res6cnt",46,0,46,46,0,46);
+    res7cnt[i] = ressubdir.make<TH2D>("res7cnt","res7cnt",46,0,46,46,0,46);
     res1[i]->Reset();
     res1[i]->Sumw2();
     res1[i]->SetOption("colz");
@@ -810,6 +853,48 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
     res7w[i]->Reset();
     res7w[i]->Sumw2();
     res7w[i]->SetOption("colz");
+    res1ep[i]->Reset();
+    res1ep[i]->Sumw2();
+    res1ep[i]->SetOption("colz");
+    res2ep[i]->Reset();
+    res2ep[i]->Sumw2();
+    res2ep[i]->SetOption("colz");
+    res3ep[i]->Reset();
+    res3ep[i]->Sumw2();
+    res3ep[i]->SetOption("colz");
+    res4ep[i]->Reset();
+    res4ep[i]->Sumw2();
+    res4ep[i]->SetOption("colz");
+    res5ep[i]->Reset();
+    res5ep[i]->Sumw2();
+    res5ep[i]->SetOption("colz");
+    res6ep[i]->Reset();
+    res6ep[i]->Sumw2();
+    res6ep[i]->SetOption("colz");
+    res7ep[i]->Reset();
+    res7ep[i]->Sumw2();
+    res7ep[i]->SetOption("colz");
+    res1cnt[i]->Reset();
+    res1cnt[i]->Sumw2();
+    res1cnt[i]->SetOption("colz");
+    res2cnt[i]->Reset();
+    res2cnt[i]->Sumw2();
+    res2cnt[i]->SetOption("colz");
+    res3cnt[i]->Reset();
+    res3cnt[i]->Sumw2();
+    res3cnt[i]->SetOption("colz");
+    res4cnt[i]->Reset();
+    res4cnt[i]->Sumw2();
+    res4cnt[i]->SetOption("colz");
+    res5cnt[i]->Reset();
+    res5cnt[i]->Sumw2();
+    res5cnt[i]->SetOption("colz");
+    res6cnt[i]->Reset();
+    res6cnt[i]->Sumw2();
+    res6cnt[i]->SetOption("colz");
+    res7cnt[i]->Reset();
+    res7cnt[i]->Sumw2();
+    res7cnt[i]->SetOption("colz");
   }
   //=====================
   TFileDirectory hardir = fs->mkdir("Harmonics");
@@ -1077,7 +1162,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   } else {
     iEvent.getByToken(tag_,cbin_);
     ntrkval = *cbin_;
-    hNtrkoff->Fill(ntrkval);
+    //hNtrkoff->Fill(ntrkval);
     bin = NtrkToBin(ntrkval)-1;
     centval = bin;
     hcentres->Fill(centval);
@@ -1138,26 +1223,25 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        return;
      }
      if(rp->sumSin()!=0 || rp->sumCos()!=0) {
-       epang[indx]=rp->angle();
-       eporig[indx]=rp->angle(0);
-       epsin[indx] = rp->sumSin();
-       epcos[indx] = rp->sumCos();
        if(rp->mult()>3 && fabs(vtx)<15) {
+	 epang[indx]=rp->angle();
+	 eporig[indx]=rp->angle(0);
+	 epsin[indx] = rp->sumSin();
+	 epcos[indx] = rp->sumCos();
 	 hPsi[indx]->Fill(rp->angle(0));
 	 hPsiOffset[indx]->Fill(rp->angle(1));
 	 hPsiFlat[indx]->Fill(rp->angle(2));
-       }
-      
-       qx[indx]  = rp->qx(); 
-       qy[indx]  = rp->qy();
-       q[indx]   = rp->q();
-       vn[indx] = rp->vn(0);
-       epmult[indx] = (double) rp->mult();
-       sumw[indx] = rp->sumw();
-       sumw2[indx] = rp->sumw2();
-       
-       rescor[indx] = flat[indx]->getCentRes1((int) centval);
-       rescorErr[indx] = flat[indx]->getCentResErr1((int) centval);
+	 qx[indx]  = rp->qx(); 
+	 qy[indx]  = rp->qy();
+	 q[indx]   = rp->q();
+	 vn[indx] = rp->vn(0);
+	 epmult[indx] = (double) rp->mult();
+	 sumw[indx] = rp->sumw();
+	 sumw2[indx] = rp->sumw2();
+	 
+	 rescor[indx] = flat[indx]->getCentRes1((int) centval);
+	 rescorErr[indx] = flat[indx]->getCentResErr1((int) centval);
+       } 
      }
      ++indx; 
    }
@@ -1167,7 +1251,9 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if ( Noff == -2 ) {
     return;
   }
-  ntrkval=getNoff(iEvent, iSetup, bin);
+
+  int ntrkval=getNoff(iEvent, iSetup, bin);
+  //  cout<<ntrkval<<"\t"<<ntrkval2<<endl;
   hNtrkoff->Fill(ntrkval);
   int ibin = bin;
   ptav[ibin]->Add(avpt);
@@ -1237,65 +1323,100 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
   for(int i = HFm1; i<= HFp1f; i++) {
     for(int j = HFm1; j<=HFp1f; j++) {
-      int ii = i-HFm1;
-      int jj = j-HFm1;
-      res1[ibin]->SetBinContent(ii,jj, res1[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res1w[ibin]->SetBinContent(ii,jj, res1w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm1+1;
+      int jj = j-HFm1+1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res1[ibin]->SetBinContent(ii,jj, res1[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res1w[ibin]->SetBinContent(ii,jj, res1w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res1ep[ibin]->SetBinContent(ii,jj, res1ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res1cnt[ibin]->SetBinContent(ii,jj, res1cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
 
   for(int i = HFm2; i<= HFp2f; i++) {
     for(int j = HFm2; j<=HFp2f; j++) {
-      int ii = i-HFm2;
-      int jj = j-HFm2;
-      res2[ibin]->SetBinContent(ii,jj, res2[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res2w[ibin]->SetBinContent(ii,jj, res2w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm2 +1;
+      int jj = j-HFm2 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res2[ibin]->SetBinContent(ii,jj, res2[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res2w[ibin]->SetBinContent(ii,jj, res2w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res2ep[ibin]->SetBinContent(ii,jj, res2ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res2cnt[ibin]->SetBinContent(ii,jj, res2cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
-
+  
   for(int i = HFm3; i<= HFp3f; i++) {
     for(int j = HFm3; j<=HFp3f; j++) {
-      int ii = i-HFm3;
-      int jj = j-HFm3;
-      res3[ibin]->SetBinContent(ii,jj, res3[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res3w[ibin]->SetBinContent(ii,jj, res3w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm3 +1;
+      int jj = j-HFm3 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res3[ibin]->SetBinContent(ii,jj, res3[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res3w[ibin]->SetBinContent(ii,jj, res3w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res3ep[ibin]->SetBinContent(ii,jj, res3ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res3cnt[ibin]->SetBinContent(ii,jj, res3cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
 
 
   for(int i = HFm4; i<= HFp4f; i++) {
     for(int j = HFm4; j<=HFp4f; j++) {
-      int ii = i-HFm4;
-      int jj = j-HFm4;
-      res4[ibin]->SetBinContent(ii,jj, res4[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res4w[ibin]->SetBinContent(ii,jj, res4w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm4 +1;
+      int jj = j-HFm4 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res4[ibin]->SetBinContent(ii,jj, res4[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res4w[ibin]->SetBinContent(ii,jj, res4w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res4ep[ibin]->SetBinContent(ii,jj, res4ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res4cnt[ibin]->SetBinContent(ii,jj, res4cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
-
+  
   for(int i = HFm5; i<= trackp522; i++) {
     for(int j = HFm5; j<=trackp522; j++) {
-      int ii = i-HFm5;
-      int jj = j-HFm5;
-      res5[ibin]->SetBinContent(ii,jj, res5[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res5w[ibin]->SetBinContent(ii,jj, res5w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm5 +1;
+      int jj = j-HFm5 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res5[ibin]->SetBinContent(ii,jj, res5[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res5w[ibin]->SetBinContent(ii,jj, res5w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res5ep[ibin]->SetBinContent(ii,jj, res5ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res5cnt[ibin]->SetBinContent(ii,jj, res5cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
-
+  
   for(int i = HFm6; i<= trackp622; i++) {
     for(int j = HFm6; j<=trackp622; j++) {
-      int ii = i-HFm6;
-      int jj = j-HFm6;
-      res6[ibin]->SetBinContent(ii,jj, res6[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res6w[ibin]->SetBinContent(ii,jj, res6w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm6 +1;
+      int jj = j-HFm6 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res6[ibin]->SetBinContent(ii,jj, res6[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res6w[ibin]->SetBinContent(ii,jj, res6w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res6ep[ibin]->SetBinContent(ii,jj, res6ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res6cnt[ibin]->SetBinContent(ii,jj, res6cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
-
+  
   for(int i = HFm7; i<= trackp722; i++) {
     for(int j = HFm7; j<=trackp722; j++) {
-      int ii = i-HFm7;
-      int jj = j-HFm7;
-      res7[ibin]->SetBinContent(ii,jj, res7[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
-      res7w[ibin]->SetBinContent(ii,jj, res7w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+      int ii = i-HFm7 +1;
+      int jj = j-HFm7 +1;
+      double w =(pow(qx[i],2)+pow(qy[i],2))*(pow(qx[j],2)+pow(qy[j],2));
+      if(w>0) {
+	res7[ibin]->SetBinContent(ii,jj, res7[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j]));
+	res7w[ibin]->SetBinContent(ii,jj, res7w[ibin]->GetBinContent(ii,jj)+sumw[i]*sumw[j]);
+	res7ep[ibin]->SetBinContent(ii,jj, res7ep[ibin]->GetBinContent(ii,jj)+(qx[i]*qx[j]+qy[i]*qy[j])/sqrt(w));
+	res7cnt[ibin]->SetBinContent(ii,jj, res7cnt[ibin]->GetBinContent(ii,jj)+1.);
+      }
     }
   }
   if(makeTree_) tree->Fill(); 
@@ -1312,6 +1433,7 @@ VNAnalyzer::beginJob()
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 VNAnalyzer::endJob() {
+
 }
 bool
 VNAnalyzer::CaloMatch(const reco::Track & track, const edm::Event & iEvent, unsigned int idx)
