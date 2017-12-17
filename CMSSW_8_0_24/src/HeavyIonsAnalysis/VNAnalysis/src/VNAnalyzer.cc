@@ -4,7 +4,7 @@
 // Class:      VNAnalyzer
 // 
 
-#define pPb
+#define USE_NTRACK
 
 // system include files
 #include <memory>
@@ -66,11 +66,13 @@ using namespace edm;
 
 static const int ntrkbins = 25;
 static const  double trkBins[]={0, 10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 135, 150, 160, 185, 210, 230, 250, 270, 300, 330, 350, 370, 390, 420, 500};
+
+static const int ncentbins = 13;
+static const  double centbins[]={0, 5, 10, 15, 20, 25, 30, 35, 40,  50, 60, 70, 80, 100};
+
 static const int nptbins = 28;
 static const float ptbins[]={0.3, 0.4, 0.5,  0.6,  0.8,  1.0,  1.25,  1.50,  2.0,
 			      2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  7.0, 8.0, 10., 12.0, 14.0, 16.0,  20.0, 26.0, 35.0, 45.0, 60.0, 80.0, 100., 200.};
-
-static const int MaxTracks = 50;
 
 static const int netabinsDefault = 12;
 static const float etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
@@ -78,24 +80,26 @@ static const int nanals = 47;
 enum AnalType {
   N1MCm22, N1MCm18, N1MCm14, N1MCm10, N1MCm06,
   N1MCm02, N1MCp22, N1MCp18, N1MCp14, N1MCp10,
-  N1MCp06, N1MCp02,   N112, N112A, N112B,  N123, N123A,      N1A, N1B, 
-       N2,      N3,      N4,      N5,      N6,    
-      N7,     N42,    N42A,    N42B,     N42C,
-     N523,   N523A,     N63,    N63A,     N62,    
-     N62A,    N723,   N723A,     D24,    D24A,     
-      D26,    D26A,     D34,    D34A,   D2232,  
-   D2232A,   D2432,  D2432A
+  N1MCp06, N1MCp02,    N112,   N112A,   N112B,  
+     N123,   N123A,     N1A,     N1B,      N2,      
+       N3,      N4,      N5,      N6,      N7,     
+      N42,    N42A,    N42B,    N42C,    N523,   
+    N523A,     N63,    N63A,     N62,    N62A,    
+     N723,   N723A,     D24,    D24A,     D26,  
+     D26A,     D34,    D34A,   D2232,  D2232A,  
+    D2432,  D2432A
 };
 string AnalNames[]={
   "N1MCm22", "N1MCm18", "N1MCm14", "N1MCm10","N1MCm06",
   "N1MCm02", "N1MCp22", "N1MCp18", "N1MCp14","N1MCp10",
-  "N1MCp06", "N1MCp02",   "N112", "N112A", "N112B",   "N123", "N123A",     "N1A", "N1B",
-       "N2",      "N3",      "N4",      "N5",     "N6",   
-        "N7",     "N42",    "N42A",    "N42B",  "N42C",
-     "N523",   "N523A",     "N63",    "N63A",    "N62",  
-     "N62A",    "N723",   "N723A",     "D24",   "D24A",   
-      "D26",    "D26A",     "D34",    "D34A",  "D2232",
-   "D2232A",   "D2432",   "D2432A"
+  "N1MCp06", "N1MCp02",    "N112",   "N112A",  "N112B",   
+     "N123",   "N123A",     "N1A",     "N1B",     "N2",    
+       "N3",      "N4",      "N5",      "N6",     "N7",   
+      "N42",    "N42A",    "N42B",    "N42C",   "N523",   
+    "N523A",     "N63",    "N63A",     "N62",   "N62A",   
+     "N723",   "N723A",     "D24",    "D24A",    "D26",    
+     "D26A",     "D34",    "D34A",   "D2232", "D2232A", 
+    "D2432",   "D2432A"
 };
 
 
@@ -122,16 +126,13 @@ private:
   // ----------member data ---------------------------
   int eporder_;
 
-
   std::string centralityVariable_;
   std::string centralityLabel_;
   std::string centralityMC_;
-
   edm::InputTag centralityBinTag_;
   edm::EDGetTokenT<int> centralityBinToken;
   edm::Handle<int> cbin_;
   edm::EDGetTokenT<int> tag_;
-
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
   edm::Handle<reco::Centrality> centrality_;
@@ -162,7 +163,6 @@ private:
   int caloCentRefMinBin_;
   int caloCentRefMaxBin_;
 
-  double nCentBins_;
   bool useNtrk_;
 
   int vs_sell;   // vertex collection size
@@ -177,8 +177,9 @@ private:
   //  TH2D * hEff[ntrkbins];
   double centval;
   int ntrkval;
-  double vtx;
   int Noff;
+  double vtx;
+
   double reso_;
   bool bCaloMatching_;
   int nvtx_;
@@ -213,7 +214,8 @@ private:
 
   unsigned int runno_;
 
-  TH1D * hNtrkoff;
+  TH1D * hNtrk;
+  TH1D * hNoff;
   int nEtaBins;
   TH1I * hrun;
   string rpnames[NumEPNames];
@@ -286,9 +288,6 @@ private:
 
 
   int ntrack;
-  float sppt[MaxTracks];
-  float spphi[MaxTracks];
-  float speta[MaxTracks];
 
 
   //==============  Harmonics ============
@@ -350,16 +349,95 @@ private:
     TH1D * qCAcnt[ntrkbins][11];
     TH1D * qCBcnt[ntrkbins][11];
   } qanal[nanals];
+
+  //===================================
+
+  
+  TH2D * Eff_0_5;
+  TH2D * Eff_5_10;
+  TH2D * Eff_10_30;
+  TH2D * Eff_30_50;
+  TH2D * Eff_50_100;
+  enum    TrackCut {trackUndefine = 0, ppReco = 1, HIReco, Pixel};
+  TrackCut sTrackQuality;
+  double  dzdzerror_pix_;
+  bool TrackQuality_ppReco(const reco::TrackCollection::const_iterator&, const reco::VertexCollection&);
+  bool TrackQuality_HIReco(const reco::TrackCollection::const_iterator&, const reco::VertexCollection&);
+  bool TrackQuality_Pixel(const reco::TrackCollection::const_iterator&, const reco::VertexCollection&);
+
+
   TRandom * ran;
 #include "HeavyIonsAnalysis/VNAnalysis/interface/Harmonics.h"
   
   //===================================
 
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+    int N = 0;
+    using namespace edm;
+    using namespace reco;
+    //std::cout<<"getNoff"<<std::endl;
+    iEvent.getByToken(vertexToken,vertex_);
+    VertexCollection recoVertices = *vertex_;
+    int primaryvtx = 0;
+#ifndef USE_NTRACK
+    if ( recoVertices.size() > 100 ) return -1;
+    sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
+     	if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
+     	return a.tracksSize() > b.tracksSize();
+      });
+    
+    double vz = recoVertices[primaryvtx].z();
+    if (fabs(vz) < -15 || fabs(vz) > 15)     return -1;
+          
+#else
+    sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
+	return a.tracksSize() > b.tracksSize();
+      });
+    
+#endif
+    math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+    double vxError = recoVertices[primaryvtx].xError();
+    double vyError = recoVertices[primaryvtx].yError();
+    double vzError = recoVertices[primaryvtx].zError();
+    
+    iEvent.getByLabel(trackTag_,trackCollection_);
+    
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      bool bPix = false;
+#ifndef USE_NTRACK
+      int nHits = itTrack->numberOfValidHits();
+      if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
+#endif
+      if ( not bPix ) {
+#ifndef USE_NTRACK
+	if ( nHits < 11 ) continue;
+	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) 	  continue;
+#endif
+	if ( itTrack->ptError()/itTrack->pt() > 0.1 )   continue;
+		
+	double d0 = -1.* itTrack->dxy(v1);
+	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+	if ( fabs( d0/derror ) > 3.0 ) continue;
+	
+	double dz=itTrack->dz(v1);
+	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+	if ( fabs( dz/dzerror ) > 3.0 ) continue;
+      }
+      hptNtrkGood->Fill(itTrack->pt());
+      if(itTrack->pt()>0.4) ++N;
+    }
+    //std::cout<<"return N = "<<N<<std::endl;
+    return N;
+  }
 
 
-  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup, int bin)
+  int fillTracks(const edm::Event& iEvent, const edm::EventSetup& iSetup, int bin)
   {
-    Noff = 0;
+    //std::cout<<"fillTracks "<<bin<<std::endl;
+    int Ntrk = 0;
     using namespace edm;
     using namespace reco;
     qxtrk1->Reset();
@@ -378,77 +456,81 @@ private:
     qytrk7->Reset();
     qcnt->Reset();
     avpt->Reset();
-    
+    //std::cout<<"reset"<<std::endl;    
     iEvent.getByToken(vertexToken,vertex_);
     VertexCollection recoVertices = *vertex_;
-#ifndef pPb
+    int primaryvtx = 0;
+#ifndef USE_NTRACK
     if ( recoVertices.size() > 100 ) return -1;
     sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
      	if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
      	return a.tracksSize() > b.tracksSize();
       });
     
-    int primaryvtx = 0;
     
     double vz = recoVertices[primaryvtx].z();
     if (fabs(vz) < -15 || fabs(vz) > 15) {
       return -1;
-    }
-    
-    math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
-    double vxError = recoVertices[primaryvtx].xError();
-    double vyError = recoVertices[primaryvtx].yError();
-    double vzError = recoVertices[primaryvtx].zError();
-    
+    }        
 #else
     sort(recoVertices.begin(), recoVertices.end(), [](const reco::Vertex &a, const reco::Vertex &b){
 	//			if ( a.tracksSize() == b.tracksSize() ) return a.chi2() < b.chi2();
 	return a.tracksSize() > b.tracksSize();
-      });
-    
-    int primaryvtx = 0;
+      });    
+#endif
     math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
     double vxError = recoVertices[primaryvtx].xError();
     double vyError = recoVertices[primaryvtx].yError();
     double vzError = recoVertices[primaryvtx].zError();
     
-#endif
     iEvent.getByLabel(trackTag_,trackCollection_);
 
-    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) {    
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin(); itTrack != trackCollection_->end(); ++itTrack) { 
+#ifdef USE_NTRACK   
       if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+#else
+      if ( sTrackQuality == HIReco and not TrackQuality_HIReco(itTrack, recoVertices) ) continue;
+      else if ( sTrackQuality == ppReco and not TrackQuality_ppReco(itTrack, recoVertices) ) continue;
+      else if ( sTrackQuality == Pixel  and not TrackQuality_Pixel (itTrack, recoVertices) ) continue;
+#endif
       if ( itTrack->charge() == 0 ) continue;
       if ( fabs(itTrack->eta()) > 2.4 ) continue;
       bool bPix = false;
-#ifndef pPb
+#ifndef USE_NTRACK
       int nHits = itTrack->numberOfValidHits();
       if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
 #endif
       if ( not bPix ) {
-#ifndef pPb
+#ifndef USE_NTRACK
 	if ( nHits < 11 ) continue;
 	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) 	  continue;
 #endif
-	if ( itTrack->ptError()/itTrack->pt() > 0.1 )   continue;
-	
-	
+
+	if ( itTrack->ptError()/itTrack->pt() > pterror_ )   continue;
+		
 	double d0 = -1.* itTrack->dxy(v1);
 	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
-	if ( fabs( d0/derror ) > 3.0 ) {
-	  continue;
-	}
+	if ( fabs( d0/derror ) > d0d0error_ ) continue;
 	
 	double dz=itTrack->dz(v1);
 	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
-	if ( fabs( dz/dzerror ) > 3.0 ) {
-	  continue;
-	}
+	if ( fabs( dz/dzerror ) > dzdzerror_ ) continue;
       }
-      hptNtrkGood->Fill(itTrack->pt());
-      if(itTrack->pt()>0.4) ++Noff;
+
       int ipt = qxtrk2->GetXaxis()->FindBin(itTrack->pt());
       int ieta = qxtrk2->GetYaxis()->FindBin(itTrack->eta());
       double eff = 1.;
+      if(effTable_!="NULL") {
+	int ieffpt = Eff_0_5->GetYaxis()->FindBin(itTrack->pt());
+	int ieffeta = Eff_0_5->GetXaxis()->FindBin(itTrack->eta());
+	if(centval<5) eff = Eff_0_5->GetBinContent(ieffeta,ieffpt);
+	else if (centval < 10) eff = Eff_5_10->GetBinContent(ieffeta,ieffpt);
+	else if (centval < 30) eff = Eff_10_30->GetBinContent(ieffeta,ieffpt);
+	else if (centval < 50) eff = Eff_30_50->GetBinContent(ieffeta,ieffpt);
+	else eff = Eff_50_100->GetBinContent(ieffeta,ieffpt);	
+	if(eff == 0) eff = 1;
+	eff=1/eff;
+      }
       qxtrk1->Fill(itTrack->pt(), itTrack->eta(), eff*(TMath::Cos(itTrack->phi()) - wqxtrkRef[0][bin]->GetBinContent(ipt,ieta)));
       qytrk1->Fill(itTrack->pt(), itTrack->eta(), eff*(TMath::Sin(itTrack->phi()) - wqytrkRef[0][bin]->GetBinContent(ipt,ieta)));
       qxtrk2->Fill(itTrack->pt(), itTrack->eta(), eff*(TMath::Cos(2.*itTrack->phi()) - wqxtrkRef[1][bin]->GetBinContent(ipt,ieta)));
@@ -466,13 +548,14 @@ private:
 
 
 
-      qcnt->Fill(itTrack->pt(), itTrack->eta());
-      avpt->Fill(itTrack->pt(), itTrack->eta(), itTrack->pt());
+      qcnt->Fill(itTrack->pt(), itTrack->eta(), eff);
+      avpt->Fill(itTrack->pt(), itTrack->eta(), eff*itTrack->pt());
       
       if( itTrack->pt() < 0.2 ) continue;
-      //hEff[bin]->Fill(itTrack->phi(),itTrack->eta());
+      ++Ntrk;
     }
-    return Noff;
+    //std::cout<<"return Ntrk: "<<Ntrk<<std::endl;
+    return Ntrk;
   }
 
 
@@ -528,6 +611,18 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   if(trackToken.isUninitialized()) {
     std::cout<<"trackToken is uninitialized."<<std::endl;
   }
+  if ( trackTag_.label() == "hiGeneralTracks" ) {
+    sTrackQuality = HIReco;
+    cout<<"hiGeneralTracks"<<endl;
+  } else if ( trackTag_.label() == "generalTracks" ) {
+    sTrackQuality = ppReco;
+    cout<<"generalTracks"<<endl;
+  } else if ( trackTag_.label() == "hiGeneralAndPixelTracks" ) {
+    sTrackQuality = Pixel;
+    cout<<"hiGeneralAndPixelTracks"<<endl;
+  } else {
+    sTrackQuality = trackUndefine;
+  }
   useNtrk_ = iConfig.getUntrackedParameter<bool>("useNtrk",false);
   if(useNtrk_) {
     NumFlatBins_ = ntrkbins;
@@ -567,7 +662,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   d0d0error_ = iConfig.getUntrackedParameter<double>("d0d0error_", 3.);
   pterror_ = iConfig.getUntrackedParameter<double>("pterror_",0.1);
   teff = 0;
-  if(!effTable_.empty()) teff = new TrackEfficiency(effTable_.data());
+  if(effTable_!="NULL") teff = new TrackEfficiency(effTable_.data());
   minvz_ = iConfig.getUntrackedParameter<double>("minvz_", -15.);
   maxvz_ = iConfig.getUntrackedParameter<double>("maxvz_", 15.);
   dzerr_ = iConfig.getParameter<double>("dzerr") ;
@@ -576,9 +671,7 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   frecenter = new TFile(offsetFileName.data(),"read");
   int mx = ntrkbins;
   if(!useNtrk_) {
-    mx = 0;
-    cout<<"need to set this up"<<endl;
-    //	mx = nCentBins_;
+    mx = ncentbins;
   }
   for(int i = 0; i<mx; i++) {
     for(int j = 1; j<=7; j++){
@@ -623,10 +716,6 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   conddir.make<TH1I>(inputPlanesTag_.label().data(), inputPlanesTag_.label().data(),1,0,1);
   string etable = Form("EffTable_%s",effTable_.data());
   conddir.make<TH1I>(etable.data(), etable.data(),1,0,1);
-  //string efile = Form("EffFileName_%s",effFileName.data());
-  //conddir.make<TH1I>(efile.data(), efile.data(),1,0,1);
-  //string note_EPLevel = Form("EPLevel_%d",EPLevel_);
-  //conddir.make<TH1I>(note_EPLevel.data(), note_EPLevel.data(),1,0,1);
   string note_FlatOrder = Form("FlatOrder_%d",FlatOrder_);
   conddir.make<TH1I>(note_FlatOrder.data(), note_FlatOrder.data(),1,0,1);
   string note_NumFlatBins = Form("NumFlatBins_%d",NumFlatBins_);
@@ -639,10 +728,8 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   conddir.make<TH1I>(note_dzdzerror.data(), note_dzdzerror.data(),1,0,1);
   string note_d0d0error = Form("d0d0error_%07.2f",d0d0error_);
   conddir.make<TH1I>(note_d0d0error.data(), note_d0d0error.data(),1,0,1);
-  //string note_pterrorpt = Form("dterrorpt_%07.2f",pterrorpt_);
-  //conddir.make<TH1I>(note_pterrorpt.data(), note_pterrorpt.data(),1,0,1);
-  //string note_dzdzerror_pix = Form("dzdzerror_pix_%07.2f",dzdzerror_pix_);
-  //conddir.make<TH1I>(note_dzdzerror_pix.data(), note_dzdzerror_pix.data(),1,0,1);
+  string note_dzdzerror_pix = Form("dzdzerror_pix_%07.2f",dzdzerror_pix_);
+  conddir.make<TH1I>(note_dzdzerror_pix.data(), note_dzdzerror_pix.data(),1,0,1);
   string note_chi2 = Form("chi2_%07.2f",chi2_);
   conddir.make<TH1I>(note_chi2.data(), note_chi2.data(),1,0,1);
   string note_vtx_range = Form("vtx_%5.1f_%5.1f",minvz_,maxvz_);
@@ -673,7 +760,8 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   }
   
   save->cd();
-  hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,3000);
+  hNtrk = fs->make<TH1D>("Ntrk","Ntrk",1001,0,3000);
+  hNoff = fs->make<TH1D>("Noff","Noff",1001,0,3000);
   int npt = nptbins;
   qxtrk1 = fs->make<TH2D>("qxtrk1","qxtrk1",npt,ptbins, netabinsDefault, etabinsDefault);
   qytrk1 = fs->make<TH2D>("qytrk1","qytrk1",npt,ptbins, netabinsDefault, etabinsDefault);
@@ -739,14 +827,6 @@ VNAnalyzer::VNAnalyzer(const edm::ParameterSet& iConfig):runno_(0)
   hptNtrkGood->SetXTitle("p_{T} (GeV/c)");
   hptNtrkGood->SetYTitle("Ntrks (Good) (|#eta|<1; 0-5)");
   hNtrkRet = fs->make<TH1I>("NtrkRet","NtrkRet", 10,0,10);
-  // for(int i = 0; i<ntrkbins; i++) {
-  //   TString hn = Form("Eff_%d_%d",(int)trkBins[i],(int)trkBins[i+1]);
-  //   hEff[i] = fs->make<TH2D>(hn.Data(),hn.Data(),50,-TMath::Pi(),TMath::Pi(),50,-2.4,2.4);
-  //   hEff[i]->Sumw2();
-  //   hEff[i]->SetXTitle("#phi (radians)");
-  //   hEff[i]->SetYTitle("#eta");
-  //   hEff[i]->SetOption("colz");
-  // }
   TString epnames = EPNames[0].data();
   epnames = epnames+"/D";
   NumFlatBins_ = ntrkbins;
@@ -1099,6 +1179,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if(runno_ != iEvent.id().run()) newrun = kTRUE;
   runno_ = iEvent.id().run();
   hrun->Fill(runno_);
+  int nCentBins_ = 1;
   if(FirstEvent_ || newrun) {
     FirstEvent_ = kFALSE;
     newrun = kFALSE;
@@ -1139,7 +1220,7 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // //Get Centrality
   // //
 
-   int Noff=0;
+  int Noff=0;
 
   int bin = 0;
   if(!useNtrk_) {
@@ -1151,23 +1232,24 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	return;
       }
     }
-
-   iEvent.getByToken(centralityBinToken, cbin_);
-   int cbin = *cbin_;
-   bin = cbin/CentBinCompression_; 
-   double cscale = 100./nCentBins_;
-   centval = cscale*cbin;
-   
-   
+    
+    iEvent.getByToken(centralityBinToken, cbin_);
+    int cbin = *cbin_;
+    bin = cbin/CentBinCompression_; 
+    double cscale = 100./nCentBins_;
+    centval = cscale*cbin;
+    
+    
   } else {
-    iEvent.getByToken(tag_,cbin_);
-    ntrkval = *cbin_;
-    //hNtrkoff->Fill(ntrkval);
-    bin = NtrkToBin(ntrkval)-1;
+    //iEvent.getByToken(tag_,cbin_);
+    //ntrkval = *cbin_;
+    Noff = getNoff(iEvent, iSetup);
+    hNoff->Fill(Noff);
+    bin = NtrkToBin(Noff)-1;
     centval = bin;
     hcentres->Fill(centval);
   }
-
+  
   hcent->Fill(centval);
   hcentbins->Fill(bin);
   // //
@@ -1247,14 +1329,14 @@ VNAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    }
 
 
-  ntrkval = Noff;
+
   if ( Noff == -2 ) {
     return;
   }
 
-  int ntrkval=getNoff(iEvent, iSetup, bin);
+  int ntrkval=fillTracks(iEvent, iSetup, bin);
   //  cout<<ntrkval<<"\t"<<ntrkval2<<endl;
-  hNtrkoff->Fill(ntrkval);
+  hNtrk->Fill(ntrkval);
   int ibin = bin;
   ptav[ibin]->Add(avpt);
   ptcnt[ibin]->Add(qcnt);
@@ -1457,6 +1539,126 @@ VNAnalyzer::CaloMatch(const reco::Track & track, const edm::Event & iEvent, unsi
   else {
     return false;
   }
+}
+///
+bool
+VNAnalyzer::TrackQuality_ppReco(const reco::TrackCollection::const_iterator& itTrack, const reco::VertexCollection& recoVertices)
+{
+        if ( itTrack->charge() == 0 ) return false;
+        if ( !itTrack->quality(reco::TrackBase::highPurity) ) return false;
+        if ( itTrack->ptError()/itTrack->pt() > pterror_ ) return false;
+	int primaryvtx = 0;
+	math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+	double vxError = recoVertices[primaryvtx].xError();
+	double vyError = recoVertices[primaryvtx].yError();
+	double vzError = recoVertices[primaryvtx].zError();
+        double d0 = -1.* itTrack->dxy(v1);
+        double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+        if ( fabs( d0/derror ) > d0d0error_ ) {
+                return false;
+        }
+        double dz=itTrack->dz(v1);
+        double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+        if ( fabs( dz/dzerror ) > dzdzerror_ ) {
+                return false;
+        }
+        return true;
+}
+
+///
+bool
+VNAnalyzer::TrackQuality_HIReco(const reco::TrackCollection::const_iterator& itTrack, const reco::VertexCollection& recoVertices)
+{
+	if ( itTrack->charge() == 0 ) return false;
+	if ( !itTrack->quality(reco::TrackBase::highPurity) ) return false;
+	if ( itTrack->numberOfValidHits() < 11 ) return false;
+	if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
+		return false;
+	}
+	if ( itTrack->ptError()/itTrack->pt() > pterror_ ) {
+		return false;
+	}
+	if (
+		itTrack->originalAlgo() != 4 and
+		itTrack->originalAlgo() != 5 and
+		itTrack->originalAlgo() != 6 and
+		itTrack->originalAlgo() != 7
+	) {
+		return false;
+	}
+
+	int primaryvtx = 0;
+	math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+	double vxError = recoVertices[primaryvtx].xError();
+	double vyError = recoVertices[primaryvtx].yError();
+	double vzError = recoVertices[primaryvtx].zError();
+	double d0 = -1.* itTrack->dxy(v1);
+	double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+	if ( fabs( d0/derror ) > d0d0error_ ) {
+		return false;
+	}
+
+	double dz=itTrack->dz(v1);
+	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+	if ( fabs( dz/dzerror ) > dzdzerror_ ) {
+		return false;
+	}
+	return true;
+}
+
+///
+bool
+VNAnalyzer::TrackQuality_Pixel(const reco::TrackCollection::const_iterator& itTrack, const reco::VertexCollection& recoVertices)
+{
+	if ( itTrack->charge() == 0 ) return false;
+	if ( !itTrack->quality(reco::TrackBase::highPurity) ) return false;
+	bool bPix = false;
+	int nHits = itTrack->numberOfValidHits();
+
+	int primaryvtx = 0;
+	math::XYZPoint v1( recoVertices[primaryvtx].position().x(), recoVertices[primaryvtx].position().y(), recoVertices[primaryvtx].position().z() );
+	double vxError = recoVertices[primaryvtx].xError();
+	double vyError = recoVertices[primaryvtx].yError();
+	double vzError = recoVertices[primaryvtx].zError();
+	double d0 = -1.* itTrack->dxy(v1);
+
+	double dz=itTrack->dz(v1);
+	double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+//	std::cout << __LINE__ << "\tnHits = " << nHits << std::endl;
+	if ( itTrack->pt() < 2.4 and (nHits==3 or nHits==4 or nHits==5 or nHits==6) ) bPix = true;
+	if ( not bPix ) {
+		if ( nHits < 11 ) return false;
+		if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > 0.15 ) {
+			return false;
+		}
+		if ( itTrack->ptError()/itTrack->pt() > pterror_ ) {
+			return false;
+		}
+		if (
+			itTrack->pt() > 2.4 and
+			itTrack->originalAlgo() != 4 and
+			itTrack->originalAlgo() != 5 and
+			itTrack->originalAlgo() != 6 and
+			itTrack->originalAlgo() != 7
+		) {
+			return false;
+		}
+
+		double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+		if ( fabs( d0/derror ) > d0d0error_ ) {
+			return false;
+		}
+
+		if ( fabs( dz/dzerror ) > dzdzerror_ ) {
+			return false;
+		}
+	} else {
+		if ( itTrack->normalizedChi2() / itTrack->hitPattern().trackerLayersWithMeasurement() > chi2_ ) return false;
+		if ( fabs( dz/dzerror ) > dzdzerror_pix_ ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 //define this as a plug-in
