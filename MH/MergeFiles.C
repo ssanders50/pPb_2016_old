@@ -77,7 +77,7 @@ void MergeFiles(string inlist="inlist.dat", string tag="h_", int num=10) {
 	cout<<line<<endl;
 	system(line.data());
       }
-      line = "hadd -f tmp/"+ tag + to_string(ncount++)+".root "+inFile;
+      line = "hadd -f /rfs/sanders/tmp/"+ tag + to_string(ncount++)+".root "+inFile;
     } else {
       line += " "+inFile;
     }
