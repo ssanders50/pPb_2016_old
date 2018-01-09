@@ -1,0 +1,101 @@
+void CheckOffset(string runs="262800_263230", int order = 1, int bin = 1){
+  int maxptbin = 9;
+  double zmin = -0.07;
+  double zmax = 0.07;
+  TFile * tf = new TFile(Form("../PbPb_%s.root",runs.data()),"read");
+  TH2D * qxtrk = (TH2D *) tf->Get(Form("vnanalyzer/qxtrk%d",order));
+  TH2D * qytrk = (TH2D *) tf->Get(Form("vnanalyzer/qytrk%d",order));
+  TH2D * qcnt = (TH2D *) tf->Get("vnanalyzer/qcnt");
+  qxtrk->Divide(qcnt);
+  qytrk->Divide(qcnt);
+  TCanvas * c = new TCanvas("c","c",1200,1000);
+  c->Divide(2,2);
+  c->cd(1);
+  gPad->SetRightMargin(0.2);
+  qxtrk->GetXaxis()->SetRange(1,maxptbin);
+  qxtrk->SetMinimum(zmin);
+  qxtrk->SetMaximum(zmax);
+  qxtrk->Draw();
+  gPad->Update();
+  TPaletteAxis * px = (TPaletteAxis *) qxtrk->GetListOfFunctions()->FindObject("palette");
+  px->SetX1NDC(px->GetX1NDC());
+  px->SetX2NDC(px->GetX2NDC());
+  px->Draw();
+  TFile * toff = new TFile(Form("../offset_PbPb2015_%s.root",runs.data()),"read");
+  TH2D * xoff = (TH2D *) toff->Get(Form("wqxtrk_%d_%d",order,bin));
+  c->cd(3);
+  gPad->SetRightMargin(0.2);
+  xoff->GetXaxis()->SetRange(1,maxptbin);
+  xoff->SetMinimum(zmin);
+  xoff->SetMaximum(zmax);
+  xoff->Draw();
+  gPad->Update();
+  TPaletteAxis * pox = (TPaletteAxis *) xoff->GetListOfFunctions()->FindObject("palette");
+  pox->SetX1NDC(pox->GetX1NDC());
+  pox->SetX2NDC(pox->GetX2NDC());
+  pox->Draw();
+
+  c->cd(2);
+  gPad->SetRightMargin(0.2);
+  qytrk->GetXaxis()->SetRange(1,maxptbin);
+  qytrk->SetMinimum(zmin);
+  qytrk->SetMaximum(zmax);
+  qytrk->Draw();
+  gPad->Update();
+  TPaletteAxis * py = (TPaletteAxis *) qytrk->GetListOfFunctions()->FindObject("palette");
+  py->SetX1NDC(py->GetX1NDC());
+  py->SetX2NDC(py->GetX2NDC());
+  py->Draw();
+  TH2D * yoff = (TH2D *) toff->Get(Form("wqytrk_%d_%d",order,bin));
+  c->cd(4);
+  gPad->SetRightMargin(0.2);
+  yoff->GetXaxis()->SetRange(1,maxptbin);
+  yoff->SetMinimum(zmin);
+  yoff->SetMaximum(zmax);
+  yoff->Draw();
+  gPad->Update();
+  TPaletteAxis * poy = (TPaletteAxis *) yoff->GetListOfFunctions()->FindObject("palette");
+  poy->SetX1NDC(poy->GetX1NDC());
+  poy->SetX2NDC(poy->GetX2NDC());
+  poy->Draw();
+
+  TCanvas * c2 = new TCanvas("c2","c2",1200,1000);
+  c2->Divide(2,2);
+  c2->cd(1);
+  TH1D * projx = (TH1D *) qxtrk->ProjectionY("projx",1,maxptbin);
+  projx->Scale(1./maxptbin);
+  projx->SetMinimum(-0.1);
+  projx->SetMaximum(0.1);
+  projx->SetMarkerStyle(20);
+  projx->Draw();
+  gPad->SetGrid(1,1);
+
+  c2->cd(2);
+  TH1D * projy = (TH1D *) qytrk->ProjectionY("projy",1,maxptbin);
+  projy->Scale(1./maxptbin);
+  projy->SetMinimum(-0.1);
+  projy->SetMaximum(0.1);
+  projy->SetMarkerStyle(20);
+  projy->Draw();
+  gPad->SetGrid(1,1);
+
+  c2->cd(3);
+  TH1D * projxo = (TH1D *) xoff->ProjectionY("projxo",1,maxptbin);
+  projxo->Scale(1./maxptbin);
+  projxo->SetMinimum(-0.1);
+  projxo->SetMaximum(0.1);
+  projxo->SetMarkerStyle(20);
+  projxo->Draw();
+  gPad->SetGrid(1,1);
+
+  c2->cd(4);
+  TH1D * projyo = (TH1D *) yoff->ProjectionY("projyo",1,maxptbin);
+  projyo->Scale(1./maxptbin);
+  projyo->SetMinimum(-0.1);
+  projyo->SetMaximum(0.1);
+  projyo->SetMarkerStyle(20);
+  projyo->Draw();
+  gPad->SetGrid(1,1);
+
+
+}
